@@ -4,7 +4,7 @@ A luxury headless e-commerce storefront built with **Next.js 15**, **React 19**,
 
 ## Architecture Decisions
 
-The storefront is built to be modular, secure, and resilient, following the exact specifications in `instructions.md`.
+The storefront is built to be modular, secure, and resilient.
 
 ### Key Decisions
 - **Next.js App Router**: Chosen for its built-in support for Server Components and optimal data fetching patterns.
