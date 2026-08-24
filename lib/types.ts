@@ -17,6 +17,7 @@ export interface ShopifyVariant {
   title: string;
   price: Money;
   availableForSale: boolean;
+  quantityAvailable: number | null;
   selectedOptions: { name: string; value: string }[];
 }
 
@@ -36,6 +37,7 @@ export interface ShopifyProduct {
   productType: string;
   vendor: string;
   availableForSale: boolean;
+  totalInventory: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -105,6 +107,7 @@ export interface ShopifyProductRaw {
   vendor: string;
   tags: string[];
   availableForSale: boolean;
+  totalInventory: number | null;
   createdAt: string;
   updatedAt: string;
   priceRange: {
@@ -117,6 +120,7 @@ export interface ShopifyProductRaw {
     title: string;
     price: Money;
     availableForSale: boolean;
+    quantityAvailable: number | null;
     selectedOptions: { name: string; value: string }[];
   }>;
 }

@@ -1,39 +1,32 @@
 import type { Metadata } from "next";
-import { Noto_Serif, Inter } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartDrawer from "@/components/cart/CartDrawer";
 import CartProvider from "@/components/providers/cart-provider";
 
-const notoSerif = Noto_Serif({
-  variable: "--font-noto-serif",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["300", "400", "700"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "MAISON — Quiet Luxury",
-    template: "%s | MAISON",
+    default: "IMPERIAL — Storefront Prototype",
+    template: "%s | IMPERIAL",
   },
   description:
-    "Architectural silhouettes and noble materials. A curated collection of timeless luxury essentials crafted by artisans.",
+    "Materials. Systems. Project confidence. Technical products, responsive support and reliable UAE supply for demanding construction environments.",
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "MAISON",
-    title: "MAISON — Quiet Luxury",
+    siteName: "IMPERIAL",
+    title: "IMPERIAL — Storefront Prototype",
     description:
-      "Architectural silhouettes and noble materials. A curated collection of timeless luxury essentials.",
+      "Materials. Systems. Project confidence.",
   },
   robots: { index: true, follow: true },
 };
@@ -44,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${notoSerif.variable} ${inter.variable}`}>
+    <html lang="en" className={poppins.variable}>
       <body>
         <CartProvider>
           <Header />

@@ -14,6 +14,7 @@ interface ShopifyFetchOptions {
   variables?: Record<string, unknown>;
   cache?: RequestCache;
   tags?: string[];
+  revalidate?: number; // seconds — enables ISR for this fetch
 }
 
 interface ShopifyResponse<T> {
@@ -33,8 +34,9 @@ interface ShopifyResponse<T> {
 export async function shopifyFetch<T>({
   query,
   variables = {},
-  cache = 'force-cache',
+  cache,
   tags,
+  revalidate,
 }: ShopifyFetchOptions): Promise<T> {
   const maxRetries = 3;
   let lastError: Error | null = null;
@@ -44,6 +46,11 @@ export async function shopifyFetch<T>({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+      // Build next options — if revalidate is set, use it; otherwise fall back to cache
+      const nextOpts: { tags?: string[]; revalidate?: number } = {};
+      if (tags) nextOpts.tags = tags;
+      if (revalidate !== undefined) nextOpts.revalidate = revalidate;
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -51,9 +58,10 @@ export async function shopifyFetch<T>({
           'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
         },
         body: JSON.stringify({ query, variables }),
-        cache,
+        // Only set cache when not using next.revalidate (they're mutually exclusive)
+        ...(revalidate === undefined && cache ? { cache } : {}),
         signal: controller.signal,
-        ...(tags && { next: { tags } }),
+        ...(Object.keys(nextOpts).length > 0 && { next: nextOpts }),
       });
 
       clearTimeout(timeoutId);

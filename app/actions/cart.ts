@@ -5,11 +5,14 @@ import { createCart, addToCart, updateCartLine, removeFromCart } from '@/lib/sho
 export async function addLineItemAction(cartId: string | null, merchandiseId: string, quantity: number) {
   try {
     if (!cartId) {
-      // Create new cart
       return await createCart([{ merchandiseId, quantity }]);
-    } else {
-      // Add to existing cart
+    }
+    try {
       return await addToCart(cartId, [{ merchandiseId, quantity }]);
+    } catch (err) {
+      // If adding fails (e.g. cart expired), create a new one
+      console.warn('Failed to add to existing cart, creating new cart:', err);
+      return await createCart([{ merchandiseId, quantity }]);
     }
   } catch (error) {
     console.error('Error adding to cart:', error);

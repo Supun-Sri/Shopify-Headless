@@ -1,86 +1,52 @@
-'use client';
-
 import Link from 'next/link';
-import { useState } from 'react';
-import { sanitizeInput, validateEmail } from '@/lib/utils';
 
 export default function Footer() {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-  const [emailError, setEmailError] = useState('');
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    setEmailError('');
-
-    const sanitized = sanitizeInput(email.trim());
-    if (!validateEmail(sanitized)) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
-
-    // In production, this would call an API endpoint
-    setSubscribed(true);
-    setEmail('');
-  };
+  const year = new Date().getFullYear();
 
   return (
-    <footer className="footer">
-      <div className="footer-inner">
-        {/* Brand */}
-        <div className="footer-col">
-          <Link href="/" className="footer-logo">
-            MZILLA
-          </Link>
-          <p className="footer-tagline">
-            Architectural silhouettes and noble materials. Designed in Paris, crafted by artisans across the globe.
-          </p>
-        </div>
+    <footer className="imp-footer">
+      {/* Shop */}
+      <div className="imp-footer-col">
+        <h6>Shop</h6>
+        <Link href="/products?collection=construction-chemicals">Construction Chemicals</Link>
+        <Link href="/products?collection=building-materials">Building Materials</Link>
+        <Link href="/products?collection=tools">Tools &amp; Equipment</Link>
+        <Link href="/products?collection=paints">Paints &amp; Decorating</Link>
+      </div>
 
-        {/* Links */}
-        <div className="footer-col">
-          <span className="footer-heading">Client Service</span>
-          <Link href="/story" className="footer-link">Story</Link>
-          <Link href="/products" className="footer-link">Collections</Link>
-          <a href="#" className="footer-link">Shipping</a>
-          <a href="#" className="footer-link">Contact</a>
-        </div>
+      {/* Trade */}
+      <div className="imp-footer-col">
+        <h6>Trade</h6>
+        <Link href="/rfq">Request a Quote</Link>
+        <div>Bulk Order Terms</div>
+        <div>Project Accounts</div>
+        <div>Trade Credit</div>
+      </div>
 
-        {/* Newsletter */}
-        <div className="footer-col">
-          <span className="footer-heading">The Correspondence</span>
-          {subscribed ? (
-            <p className="footer-subscribed">Thank you for subscribing.</p>
-          ) : (
-            <form onSubmit={handleSubscribe} className="footer-newsletter" noValidate>
-              <div className="footer-input-wrap">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="EMAIL ADDRESS"
-                  className="footer-input"
-                  aria-label="Email address for newsletter"
-                  id="newsletter-email"
-                  autoComplete="email"
-                />
-                <button type="submit" className="footer-submit" aria-label="Subscribe">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </button>
-              </div>
-              {emailError && <p className="footer-error">{emailError}</p>}
-            </form>
-          )}
+      {/* Support */}
+      <div className="imp-footer-col">
+        <h6>Support</h6>
+        <div>Chat Now</div>
+        <Link href="/rfq">Send Inquiry</Link>
+        <div>Documents &amp; Downloads</div>
+        <div>Technical Support</div>
+      </div>
+
+      {/* Imperial */}
+      <div className="imp-footer-col">
+        <h6>Imperial</h6>
+        <div>info@imperial.ae</div>
+        <div>+971 4 XXX XXXX</div>
+        <div>Al Quoz Industrial, Dubai</div>
+        <div style={{ marginTop: '12px', fontSize: '10px', color: '#637b9c' }}>
+          Secured checkout · UAE based
         </div>
       </div>
 
-      <div className="footer-bottom">
-        <p className="footer-copyright">© {new Date().getFullYear()} MZILLA. All Rights Reserved.</p>
-        <p className="footer-copyright"> <a href="https://www.magnific.com/free-ai-image/confident-businessman-luxury-suit-holds-garment-generated-by-ai_41305721.htm#fromView=keyword&page=1&position=17&uuid=7a65b1ca-e0d7-4b35-b82c-f5550df7de68&query=Men+luxury+clothing">Image by vecstock on Magnific</a>.</p>
-        <p className="footer-copyright"></p>
+      {/* Bottom bar */}
+      <div className="imp-footer-bottom">
+        <span>© {year} Imperial Middle East. All Rights Reserved.</span>
+        <span>UAE Built · Project Ready</span>
       </div>
     </footer>
   );

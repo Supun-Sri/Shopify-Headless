@@ -14,6 +14,7 @@ export const PRODUCTS_QUERY = `
           vendor
           tags
           availableForSale
+          totalInventory
           createdAt
           updatedAt
           priceRange {
@@ -46,6 +47,7 @@ export const PRODUCTS_QUERY = `
                   currencyCode
                 }
                 availableForSale
+                quantityAvailable
                 selectedOptions {
                   name
                   value
@@ -77,6 +79,7 @@ export const PRODUCT_BY_HANDLE_QUERY = `
       vendor
       tags
       availableForSale
+      totalInventory
       createdAt
       updatedAt
       priceRange {
@@ -109,6 +112,7 @@ export const PRODUCT_BY_HANDLE_QUERY = `
               currencyCode
             }
             availableForSale
+            quantityAvailable
             selectedOptions {
               name
               value
@@ -126,6 +130,7 @@ export const PRODUCT_RECOMMENDATIONS_QUERY = `
       id
       title
       handle
+      totalInventory
       priceRange {
         minVariantPrice {
           amount
@@ -137,6 +142,25 @@ export const PRODUCT_RECOMMENDATIONS_QUERY = `
           node {
             url
             altText
+          }
+        }
+      }
+    }
+  }
+`;
+
+// Fetch lightweight product data to build filter facets (vendors, types, tags, price range)
+export const PRODUCT_FILTERS_QUERY = `
+  query GetProductFilters($first: Int!, $query: String) {
+    products(first: $first, query: $query) {
+      edges {
+        node {
+          vendor
+          productType
+          tags
+          priceRange {
+            minVariantPrice { amount currencyCode }
+            maxVariantPrice { amount currencyCode }
           }
         }
       }
@@ -184,6 +208,7 @@ export const COLLECTION_BY_HANDLE_QUERY = `
             vendor
             tags
             availableForSale
+            totalInventory
             createdAt
             updatedAt
             priceRange {
@@ -216,6 +241,7 @@ export const COLLECTION_BY_HANDLE_QUERY = `
                     currencyCode
                   }
                   availableForSale
+                  quantityAvailable
                   selectedOptions {
                     name
                     value

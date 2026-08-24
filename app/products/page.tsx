@@ -1,18 +1,27 @@
 import type { Metadata } from 'next';
-import { getAllProducts, getCollectionProducts } from '@/lib/shopify-api';
+import { getAllProducts, getCollectionProducts, getProductFilters } from '@/lib/shopify-api';
 import type { SortKey } from '@/lib/types';
 import ProductCard from '@/components/products/ProductCard';
+import PLPFilters from '@/components/products/PLPFilters';
 import { Suspense } from 'react';
-import { ProductGridSkeleton } from '@/components/ui/SkeletonLoader';
-import ProductFilters from '@/components/products/ProductFilters';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Collections',
-  description: 'Browse the MZILLA  collection. Timeless luxury essentials crafted with architectural precision.',
+  title: 'Products',
+  description: 'Browse IMPERIAL construction chemicals, building materials, tools and equipment. UAE stocked, project ready.',
 };
 
 interface PageProps {
-  searchParams: Promise<{ sort?: string; q?: string; minPrice?: string; maxPrice?: string; collection?: string }>;
+  searchParams: Promise<{
+    sort?: string;
+    q?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    collection?: string;
+    vendor?: string;
+    type?: string;
+    tag?: string | string[];
+  }>;
 }
 
 function getSortVariables(sort?: string): { sortKey: SortKey; reverse: boolean } {
@@ -25,74 +34,84 @@ function getSortVariables(sort?: string): { sortKey: SortKey; reverse: boolean }
   }
 }
 
-async function ProductGrid({ sort, q, minPrice, maxPrice, collection }: { sort?: string; q?: string; minPrice?: string; maxPrice?: string; collection?: string }) {
+function ProductGridSkeleton() {
+  return (
+    <div className="prodgrid">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="skeleton skeleton-card" />
+      ))}
+    </div>
+  );
+}
+
+async function ProductGrid({
+  sort, q, minPrice, maxPrice, collection, vendor, type, tags,
+}: {
+  sort?: string; q?: string; minPrice?: string; maxPrice?: string;
+  collection?: string; vendor?: string; type?: string; tags?: string[];
+}) {
   try {
-    // If collection is specified, fetch products from that collection
+    const { sortKey, reverse } = getSortVariables(sort);
+    let products;
+
     if (collection) {
-      const { sortKey, reverse } = getSortVariables(sort);
-      const { products } = await getCollectionProducts(collection, { first: 24, sortKey, reverse });
-
-      if (products.length === 0) {
-        return (
-          <div className="error-page" style={{ minHeight: '40vh' }}>
-            <h2 className="text-headline-lg">No Products Found</h2>
-            <p>This collection is empty or doesn&apos;t exist.</p>
-          </div>
-        );
+      const result = await getCollectionProducts(collection, { first: 48, sortKey, reverse });
+      products = result.products;
+    } else {
+      // Build query string with all active filters
+      const queryParts: string[] = [];
+      if (q) queryParts.push(`title:${q}*`);
+      if (vendor) queryParts.push(`vendor:"${vendor}"`);
+      if (type) queryParts.push(`product_type:"${type}"`);
+      if (tags && tags.length > 0) {
+        tags.forEach((tag) => queryParts.push(`tag:"${tag}"`));
       }
-
-      return (
-        <>
-          <div className="filter-bar">
-            <span className="filter-count">{products.length} pieces</span>
-          </div>
-          <div className="products-grid">
-            {products.map((product, i) => (
-              <ProductCard key={product.id} product={product} priority={i < 4} />
-            ))}
-          </div>
-        </>
-      );
+      if (minPrice) queryParts.push(`variants.price:>=${minPrice}`);
+      if (maxPrice) queryParts.push(`variants.price:<=${maxPrice}`);
+      const finalQuery = queryParts.length > 0 ? queryParts.join(' AND ') : undefined;
+      const result = await getAllProducts({ first: 48, sortKey, reverse, query: finalQuery });
+      products = result.products;
     }
 
-    // Otherwise, fetch all products with filters
-    const { sortKey, reverse } = getSortVariables(sort);
-
-    const queryParts: string[] = [];
-    if (q) queryParts.push(`title:${q}*`);
-    if (minPrice) queryParts.push(`variants.price:>=${minPrice}`);
-    if (maxPrice) queryParts.push(`variants.price:<=${maxPrice}`);
-    
-    const finalQuery = queryParts.length > 0 ? queryParts.join(' AND ') : undefined;
-
-    const { products } = await getAllProducts({ first: 24, sortKey, reverse, query: finalQuery });
+    // Client-side filter for vendor/type/tags when browsing a collection
+    // (collection queries don't support arbitrary query strings)
+    if (collection) {
+      if (vendor) products = products.filter((p) => p.vendor === vendor);
+      if (type) products = products.filter((p) => p.productType === type);
+      if (tags && tags.length > 0) {
+        products = products.filter((p) => tags.every((t) => p.tags.includes(t)));
+      }
+      if (minPrice) products = products.filter((p) => parseFloat(p.priceRange.minVariantPrice.amount) >= parseFloat(minPrice));
+      if (maxPrice) products = products.filter((p) => parseFloat(p.priceRange.minVariantPrice.amount) <= parseFloat(maxPrice));
+    }
 
     if (products.length === 0) {
       return (
         <div className="error-page" style={{ minHeight: '40vh' }}>
-          <h2 className="text-headline-lg">No Products Found</h2>
-          <p>We couldn&apos;t find any products matching your criteria.</p>
+          <h2>No Products Found</h2>
+          <p>Try adjusting your filters or <Link href="/products">browse all products</Link>.</p>
         </div>
       );
     }
 
     return (
       <>
-        <div className="filter-bar">
-          <span className="filter-count">{products.length} pieces</span>
+        <div className="plp-toolbar">
+          <span className="plp-count">{products.length} product{products.length !== 1 ? 's' : ''}</span>
         </div>
-        <div className="products-grid">
+        <div className="prodgrid">
           {products.map((product, i) => (
             <ProductCard key={product.id} product={product} priority={i < 4} />
           ))}
         </div>
       </>
     );
-  } catch {
+  } catch (err) {
+    console.error('ProductGrid error:', err);
     return (
       <div className="error-page" style={{ minHeight: '40vh' }}>
-        <h2 className="text-headline-lg">The Archive</h2>
-        <p>Connect your Shopify store to browse products. Add your credentials to .env.local to get started.</p>
+        <h2>Products</h2>
+        <p>Could not load products. Please check your Shopify connection.</p>
       </div>
     );
   }
@@ -101,22 +120,60 @@ async function ProductGrid({ sort, q, minPrice, maxPrice, collection }: { sort?:
 export default async function ProductsPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
+  // Normalise tag param — could be string or string[]
+  const tags = params.tag
+    ? Array.isArray(params.tag) ? params.tag : [params.tag]
+    : [];
+
+  // Fetch filter data and product grid in parallel
+  const [filters] = await Promise.all([
+    getProductFilters(params.collection),
+  ]);
+
+  const collectionTitle = params.collection
+    ? params.collection.charAt(0).toUpperCase() + params.collection.slice(1).replace(/-/g, ' ')
+    : params.q
+    ? `Search: "${params.q}"`
+    : 'All Products';
+
   return (
-    <div className="section" style={{ marginTop: '48px', marginBottom: '128px' }}>
-      <div className="section-header">
-        <h1 className="text-headline-lg" style={{ fontFamily: 'var(--font-serif)' }}>
-          {params.collection ? params.collection.charAt(0).toUpperCase() + params.collection.slice(1).replace(/-/g, ' ') : 'PRODUCTS'}
-        </h1>
-        <p style={{ fontSize: '14px', color: 'var(--color-grey)', textTransform: 'uppercase', letterSpacing: '0.15em', marginTop: '8px' }}>
-          {params.collection ? 'Curated selection' : 'The complete archive'}
-        </p>
+    <>
+      {/* Breadcrumb */}
+      <div className="breadcrumb">
+        <a href="/">Home</a>
+        {params.collection
+          ? <> / <a href="/collections">Collections</a> / {collectionTitle}</>
+          : <> / {collectionTitle}</>
+        }
       </div>
 
-      <ProductFilters />
+      <div className="plp-wrap">
+        {/* Real filter sidebar */}
+        <Suspense fallback={<div className="plp-filters plp-filters-skeleton" />}>
+          <PLPFilters
+            filters={filters}
+            currentSort={params.sort || ''}
+            currentVendor={params.vendor || ''}
+            currentType={params.type || ''}
+          />
+        </Suspense>
 
-      <Suspense fallback={<ProductGridSkeleton count={8} />}>
-        <ProductGrid sort={params.sort} q={params.q} minPrice={params.minPrice} maxPrice={params.maxPrice} collection={params.collection} />
-      </Suspense>
-    </div>
+        {/* Product grid */}
+        <main className="plp-main">
+          <Suspense fallback={<ProductGridSkeleton />}>
+            <ProductGrid
+              sort={params.sort}
+              q={params.q}
+              minPrice={params.minPrice}
+              maxPrice={params.maxPrice}
+              collection={params.collection}
+              vendor={params.vendor}
+              type={params.type}
+              tags={tags}
+            />
+          </Suspense>
+        </main>
+      </div>
+    </>
   );
 }

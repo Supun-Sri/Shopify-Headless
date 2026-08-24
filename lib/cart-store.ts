@@ -162,7 +162,7 @@ export const useCartStore = create<CartState>()(
         }),
     }),
     {
-      name: 'maison-cart',
+      name: 'imperial-cart',
       storage: createJSONStorage(() => {
         if (typeof window !== 'undefined') {
           return localStorage;

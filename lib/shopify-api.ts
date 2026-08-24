@@ -3,6 +3,7 @@ import {
   PRODUCTS_QUERY,
   PRODUCT_BY_HANDLE_QUERY,
   PRODUCT_RECOMMENDATIONS_QUERY,
+  PRODUCT_FILTERS_QUERY,
   COLLECTIONS_QUERY,
   COLLECTION_BY_HANDLE_QUERY,
   CREATE_CART_MUTATION,
@@ -52,6 +53,7 @@ export async function getAllProducts(
     query: PRODUCTS_QUERY,
     variables: { first, after, sortKey, reverse, query },
     tags: ['products'],
+    revalidate: 60, // ISR: re-fetch from Shopify at most every 60 s
   });
 
   return {
@@ -68,7 +70,8 @@ export async function getProductByHandle(
   }>({
     query: PRODUCT_BY_HANDLE_QUERY,
     variables: { handle },
-    tags: ['product', handle],
+    tags: ['product', `product-${handle}`],
+    revalidate: 60,
   });
 
   if (!data.productByHandle) return null;
@@ -99,6 +102,64 @@ export async function getProductRecommendations(
 
 // ─── Collection API ──────────────────────────────────────────────────────────
 
+export interface ProductFilters {
+  vendors: string[];
+  productTypes: string[];
+  tags: string[];
+  minPrice: number;
+  maxPrice: number;
+  currency: string;
+}
+
+export async function getProductFilters(collectionHandle?: string): Promise<ProductFilters> {
+  try {
+    const query = collectionHandle ? `collection:${collectionHandle}` : undefined;
+    const data = await shopifyFetch<{
+      products: {
+        edges: {
+          node: {
+            vendor: string;
+            productType: string;
+            tags: string[];
+            priceRange: {
+              minVariantPrice: { amount: string; currencyCode: string };
+              maxVariantPrice: { amount: string; currencyCode: string };
+            };
+          };
+        }[];
+      };
+    }>({
+      query: PRODUCT_FILTERS_QUERY,
+      variables: { first: 250, query },
+      tags: ['product-filters'],
+    });
+
+    const products = data.products.edges.map((e) => e.node);
+    const vendors = [...new Set(products.map((p) => p.vendor).filter(Boolean))].sort();
+    const productTypes = [...new Set(products.map((p) => p.productType).filter(Boolean))].sort();
+    const allTags = products.flatMap((p) => p.tags);
+    const tags = [...new Set(allTags)].sort().slice(0, 20); // cap at 20 tags
+
+    let minPrice = Infinity;
+    let maxPrice = 0;
+    let currency = 'AED';
+    for (const p of products) {
+      const lo = parseFloat(p.priceRange.minVariantPrice.amount);
+      const hi = parseFloat(p.priceRange.maxVariantPrice.amount);
+      if (lo < minPrice) minPrice = lo;
+      if (hi > maxPrice) maxPrice = hi;
+      currency = p.priceRange.minVariantPrice.currencyCode;
+    }
+    if (!isFinite(minPrice)) minPrice = 0;
+    if (maxPrice === 0) maxPrice = 10000;
+
+    return { vendors, productTypes, tags, minPrice: Math.floor(minPrice), maxPrice: Math.ceil(maxPrice), currency };
+  } catch {
+    return { vendors: [], productTypes: [], tags: [], minPrice: 0, maxPrice: 10000, currency: 'AED' };
+  }
+}
+
+
 export async function getCollections(
   first = 10
 ): Promise<ShopifyCollection[]> {
@@ -108,6 +169,7 @@ export async function getCollections(
     query: COLLECTIONS_QUERY,
     variables: { first },
     tags: ['collections'],
+    revalidate: 300, // collections change less often — revalidate every 5 min
   });
 
   return flattenConnection(data.collections);
@@ -169,7 +231,10 @@ export async function getCollectionProducts(
 
 // ─── Cart API ────────────────────────────────────────────────────────────────
 
-function normalizeCart(raw: Record<string, unknown>): Cart {
+function normalizeCart(raw: Record<string, unknown> | null): Cart {
+  if (!raw) {
+    throw new Error('Cart is null or invalid');
+  }
   const cart = raw as {
     id: string;
     checkoutUrl: string;
@@ -188,12 +253,16 @@ export async function createCart(
   lines: { merchandiseId: string; quantity: number }[]
 ): Promise<Cart> {
   const data = await shopifyFetch<{
-    cartCreate: { cart: Record<string, unknown> };
+    cartCreate: { cart: Record<string, unknown> | null; userErrors: { message: string }[] };
   }>({
     query: CREATE_CART_MUTATION,
     variables: { lines },
     cache: 'no-store',
   });
+
+  if (data.cartCreate.userErrors?.length) {
+    throw new Error(data.cartCreate.userErrors[0].message);
+  }
 
   return normalizeCart(data.cartCreate.cart);
 }
@@ -203,12 +272,16 @@ export async function addToCart(
   lines: { merchandiseId: string; quantity: number }[]
 ): Promise<Cart> {
   const data = await shopifyFetch<{
-    cartLinesAdd: { cart: Record<string, unknown> };
+    cartLinesAdd: { cart: Record<string, unknown> | null; userErrors: { message: string }[] };
   }>({
     query: ADD_TO_CART_MUTATION,
     variables: { cartId, lines },
     cache: 'no-store',
   });
+
+  if (data.cartLinesAdd.userErrors?.length) {
+    throw new Error(data.cartLinesAdd.userErrors[0].message);
+  }
 
   return normalizeCart(data.cartLinesAdd.cart);
 }
@@ -218,12 +291,16 @@ export async function updateCartLine(
   lines: { id: string; quantity: number }[]
 ): Promise<Cart> {
   const data = await shopifyFetch<{
-    cartLinesUpdate: { cart: Record<string, unknown> };
+    cartLinesUpdate: { cart: Record<string, unknown> | null; userErrors: { message: string }[] };
   }>({
     query: UPDATE_CART_LINE_MUTATION,
     variables: { cartId, lines },
     cache: 'no-store',
   });
+
+  if (data.cartLinesUpdate.userErrors?.length) {
+    throw new Error(data.cartLinesUpdate.userErrors[0].message);
+  }
 
   return normalizeCart(data.cartLinesUpdate.cart);
 }
@@ -233,12 +310,16 @@ export async function removeFromCart(
   lineIds: string[]
 ): Promise<Cart> {
   const data = await shopifyFetch<{
-    cartLinesRemove: { cart: Record<string, unknown> };
+    cartLinesRemove: { cart: Record<string, unknown> | null; userErrors: { message: string }[] };
   }>({
     query: REMOVE_FROM_CART_MUTATION,
     variables: { cartId, lineIds },
     cache: 'no-store',
   });
+
+  if (data.cartLinesRemove.userErrors?.length) {
+    throw new Error(data.cartLinesRemove.userErrors[0].message);
+  }
 
   return normalizeCart(data.cartLinesRemove.cart);
 }
