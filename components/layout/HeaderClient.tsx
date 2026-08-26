@@ -7,13 +7,14 @@ import { useCartStore } from '@/lib/cart-store';
 import { useRouter } from 'next/navigation';
 import type { ShopifyCollection } from '@/lib/types';
 
-type MegaMenuKey = 'collections' | null;
+type MegaMenuKey = 'collections' | 'brands' | null;
 
 interface Props {
   collections: ShopifyCollection[];
+  vendors?: string[];
 }
 
-export default function HeaderClient({ collections }: Props) {
+export default function HeaderClient({ collections, vendors = [] }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +57,11 @@ export default function HeaderClient({ collections }: Props) {
   const half = Math.ceil(collections.length / 2);
   const col1 = collections.slice(0, half);
   const col2 = collections.slice(half);
+
+  // Split vendors into two columns for the mega menu
+  const halfVendors = Math.ceil(vendors.length / 2);
+  const brandCol1 = vendors.slice(0, halfVendors);
+  const brandCol2 = vendors.slice(halfVendors);
 
   return (
     <header className="header" ref={headerRef}>
@@ -152,6 +158,65 @@ export default function HeaderClient({ collections }: Props) {
         {/* All Products — simple link */}
         <Link href="/products" className="megaitem megaitem-link">All Products</Link>
 
+        {/* Brands dropdown */}
+        {vendors.length > 0 && (
+          <div
+            className="megaitem"
+            onMouseEnter={() => setOpenMenu('brands')}
+            onMouseLeave={() => setOpenMenu(null)}
+          >
+            <button
+              type="button"
+              className="megaitem-btn"
+              aria-expanded={openMenu === 'brands'}
+              aria-haspopup="true"
+              onClick={() => setOpenMenu(openMenu === 'brands' ? null : 'brands')}
+            >
+              Brands
+              <svg
+                width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" aria-hidden="true"
+                style={{ marginLeft: '4px', transition: 'transform 0.2s', transform: openMenu === 'brands' ? 'rotate(180deg)' : 'none' }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {openMenu === 'brands' && (
+              <div className="megapanel" role="menu">
+                {brandCol1.length > 0 && (
+                  <div className="megacol">
+                    {brandCol1.map((vendor) => (
+                      <Link
+                        key={vendor}
+                        href={`/products?vendor=${encodeURIComponent(vendor)}`}
+                        role="menuitem"
+                        onClick={() => setOpenMenu(null)}
+                      >
+                        {vendor}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {brandCol2.length > 0 && (
+                  <div className="megacol">
+                    {brandCol2.map((vendor) => (
+                      <Link
+                        key={vendor}
+                        href={`/products?vendor=${encodeURIComponent(vendor)}`}
+                        role="menuitem"
+                        onClick={() => setOpenMenu(null)}
+                      >
+                        {vendor}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Collections dropdown — real data */}
         {collections.length > 0 && (
           <div
@@ -230,6 +295,18 @@ export default function HeaderClient({ collections }: Props) {
           <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
             All Products
           </Link>
+          <div className="mobile-nav-section">Brands</div>
+          {vendors.slice(0, 8).map((vendor) => (
+            <Link
+              key={vendor}
+              href={`/products?vendor=${encodeURIComponent(vendor)}`}
+              className="mobile-nav-link"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {vendor}
+            </Link>
+          ))}
+          <div className="mobile-nav-section">Collections</div>
           {collections.slice(0, 8).map((col) => (
             <Link
               key={col.id}
