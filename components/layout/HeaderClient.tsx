@@ -7,7 +7,7 @@ import { useCartStore } from '@/lib/cart-store';
 import { useRouter } from 'next/navigation';
 import type { ShopifyCollection } from '@/lib/types';
 
-type MegaMenuKey = 'collections' | 'brands' | null;
+type MegaMenuKey = 'collections' | 'brands' | 'about' | null;
 
 interface Props {
   collections: ShopifyCollection[];
@@ -275,7 +275,10 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
                   <Link href="/collections" className="megacol-view-all" onClick={() => setOpenMenu(null)}>
                     View all collections →
                   </Link>
-                  <Link href="/rfq" className="megacol-rfq" onClick={() => setOpenMenu(null)}>
+                  <Link href="/bulk-inquiries" className="megacol-rfq" onClick={() => setOpenMenu(null)}>
+                    Bulk Inquiries
+                  </Link>
+                  <Link href="/rfq" className="megacol-rfq" onClick={() => setOpenMenu(null)} style={{ marginTop: '10px' }}>
                     Request a Quote
                   </Link>
                 </div>
@@ -284,6 +287,48 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           </div>
         )}
 
+        {/* About Us dropdown */}
+        <div
+          className="megaitem"
+          onMouseEnter={() => setOpenMenu('about')}
+          onMouseLeave={() => setOpenMenu(null)}
+        >
+          <button
+            type="button"
+            className="megaitem-btn"
+            aria-expanded={openMenu === 'about'}
+            aria-haspopup="true"
+            onClick={() => setOpenMenu(openMenu === 'about' ? null : 'about')}
+          >
+            About Us
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" aria-hidden="true"
+              style={{ marginLeft: '4px', transition: 'transform 0.2s', transform: openMenu === 'about' ? 'rotate(180deg)' : 'none' }}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {openMenu === 'about' && (
+            <div className="megapanel" role="menu" style={{ minWidth: '220px', padding: '16px 20px' }}>
+              <div className="megacol" style={{ minWidth: '100%' }}>
+                <Link href="/company" role="menuitem" onClick={() => setOpenMenu(null)}>The Company</Link>
+                <Link href="#" role="menuitem" onClick={() => setOpenMenu(null)}>Why Imperial?</Link>
+                <Link href="#" role="menuitem" onClick={() => setOpenMenu(null)}>Our Projects</Link>
+                <Link href="#" role="menuitem" onClick={() => setOpenMenu(null)}>Testimonials</Link>
+                <Link href="#" role="menuitem" onClick={() => setOpenMenu(null)}>Awards & Certificates</Link>
+                <Link href="#" role="menuitem" onClick={() => setOpenMenu(null)}>Social Media</Link>
+                <Link href="#" role="menuitem" onClick={() => setOpenMenu(null)}>Blog</Link>
+                <Link href="#" role="menuitem" onClick={() => setOpenMenu(null)}>Get Credit. Pay Later</Link>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Link href="/bulk-inquiries" className="megaitem megaitem-link highlight">
+          Bulk Inquiries
+        </Link>
         <Link href="/rfq" className="megaitem megaitem-link highlight">
           Request a Quote
         </Link>
@@ -322,6 +367,20 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
               All Collections →
             </Link>
           )}
+          <div className="mobile-nav-section">About Us</div>
+          <Link href="/company" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>The Company</Link>
+          <Link href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Why Imperial?</Link>
+          <Link href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Our Projects</Link>
+          <Link href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Testimonials</Link>
+          <Link href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Awards & Certificates</Link>
+          <Link href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Social Media</Link>
+          <Link href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
+          <Link href="#" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>Get Credit. Pay Later</Link>
+
+          <div className="mobile-nav-section" style={{ marginTop: '8px' }}>Action</div>
+          <Link href="/bulk-inquiries" className="mobile-nav-link mobile-nav-link-cta" onClick={() => setMobileMenuOpen(false)}>
+            Bulk Inquiries
+          </Link>
           <Link href="/rfq" className="mobile-nav-link mobile-nav-link-cta" onClick={() => setMobileMenuOpen(false)}>
             Request a Quote
           </Link>
