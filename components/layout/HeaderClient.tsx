@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '@/lib/cart-store';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import type { ShopifyCollection } from '@/lib/types';
 
 type MegaMenuKey = 'collections' | 'brands' | 'about' | null;
@@ -19,9 +19,11 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openMenu, setOpenMenu] = useState<MegaMenuKey>(null);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const totalQuantity = useCartStore((s) => s.totalQuantity());
   const toggleCart = useCartStore((s) => s.toggleCart);
   const router = useRouter();
+  const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
@@ -31,6 +33,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
     const handleClick = (e: MouseEvent) => {
       if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
         setOpenMenu(null);
+        setMobileSearchOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -41,12 +44,26 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
   useEffect(() => {
     setOpenMenu(null);
     setMobileMenuOpen(false);
-  }, []);
+    setMobileSearchOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       setOpenMenu(null);
+      setMobileSearchOpen(false);
       router.push(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
@@ -76,6 +93,12 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             <button className="active" type="button">Inc VAT</button>
             <button type="button">Ex VAT</button>
           </div>
+          <div className="topbar-language">
+            <select aria-label="Language">
+              <option>EN</option>
+              <option>AR</option>
+            </select>
+          </div>
           <div className="topbar-currency">
             <select aria-label="Currency">
               <option>AED</option>
@@ -88,7 +111,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
       </div>
 
       {/* ── Main header row ── */}
-      <div className="header-row">
+      <div className="header-row" style={{ position: 'relative' }}>
         <Link href="/" className="header-logo" aria-label="IMPERIAL Middle East Home">
           <Image
             src="/logo.png"
@@ -100,7 +123,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           />
         </Link>
 
-        <form className="header-search" onSubmit={handleSearch} role="search">
+        <form className={`header-search ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search">
           <input
             type="search"
             placeholder="Search products, brands, categories..."
@@ -112,6 +135,23 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
         </form>
 
         <div className="header-icons">
+          <button
+            className="header-mobile-toggle header-mobile-search-toggle"
+            type="button"
+            onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setMobileMenuOpen(false); }}
+            aria-label="Toggle search"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+          
+          <Link href="/compare" className="header-icon" aria-label="Compare" style={{ textDecoration: 'none' }}>
+            <div className="header-icon-box">⇄</div>
+            <span>Compare</span>
+          </Link>
+          
           <div className="header-icon" tabIndex={0} role="button" aria-label="Wishlist">
             <div className="header-icon-box">♡</div>
             <span>Wishlist</span>
@@ -139,7 +179,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           <button
             className="header-mobile-toggle"
             type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => { setMobileMenuOpen(!mobileMenuOpen); setMobileSearchOpen(false); }}
             aria-label="Toggle menu"
             aria-expanded={mobileMenuOpen}
           >

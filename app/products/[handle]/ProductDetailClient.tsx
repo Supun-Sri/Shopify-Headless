@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { ShopifyProduct } from '@/lib/types';
 import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/lib/cart-store';
+import { useCompareStore } from '@/lib/compare-store';
 import { addLineItemAction } from '@/app/actions/cart';
 
 export default function ProductDetailClient({ product }: { product: ShopifyProduct }) {
@@ -22,6 +23,16 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
   const openCart = useCartStore((s) => s.openCart);
   const cartId = useCartStore((s) => s.cartId);
   const syncFromApi = useCartStore((s) => s.syncFromApi);
+
+  const compareProducts = useCompareStore((s) => s.products);
+  const addCompare = useCompareStore((s) => s.addProduct);
+  const removeCompare = useCompareStore((s) => s.removeProduct);
+  const isCompared = compareProducts.some((p) => p.id === product.id);
+
+  const toggleCompare = () => {
+    if (isCompared) removeCompare(product.id);
+    else addCompare(product);
+  };
 
   const selectedVariant =
     product.variants.find((v) => v.id === selectedVariantId) || product.variants[0];
@@ -194,6 +205,14 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
             <Link href="/rfq" className="btn secondary" style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}>
               Negotiate
             </Link>
+            <button 
+              className={`btn ${isCompared ? 'primary' : 'secondary'}`} 
+              onClick={toggleCompare}
+              style={{ flex: 1, padding: '0 8px', fontSize: '13px' }}
+              title={isCompared ? "Remove from Compare" : "Add to Compare"}
+            >
+              {isCompared ? '✓ Compared' : '⇄ Compare'}
+            </button>
           </div>
 
           {/* Action grid */}

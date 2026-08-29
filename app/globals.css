@@ -73,7 +73,7 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; }
   font-size: 10.5px; cursor: pointer; transition: all var(--motion);
 }
 .vattoggle button.active { background: var(--imperial-blue); color: #fff; }
-.topbar-currency select {
+.topbar-currency select, .topbar-language select {
   background: transparent; color: #c7d3e8;
   border: 1px solid rgba(190, 215, 255, 0.2); border-radius: var(--r-ctrl);
   font-size: 11px; padding: 5px 10px;
@@ -219,6 +219,11 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; }
 /* Mobile nav */
 .mobile-nav {
   display: flex; flex-direction: column; border-top: 1px solid var(--line); background: #fff;
+  position: absolute; top: 100%; left: 0; right: 0;
+  max-height: calc(100vh - 105px); /* approx header height */
+  overflow-y: auto;
+  box-shadow: 0 16px 24px rgba(14,48,94,0.15);
+  z-index: 99;
 }
 .mobile-nav-link {
   padding: 14px 28px; font-size: 13px; font-weight: 600;
@@ -241,17 +246,21 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; }
 
 /* ─── Hero Section ──────────────────────────────────────── */
 .imp-hero {
-  margin: 24px 28px; height: 360px; position: relative;
+  margin: 16px 20px; height: 460px; position: relative;
   border-radius: var(--r-panel); overflow: hidden; background: var(--navy);
 }
-.imp-hero-overlay {
-  position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(to right, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 70%, transparent 100%);
+.imp-hero-content-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
 }
 .imp-hero-copy {
-  position: absolute; left: 36px; bottom: 36px; background: rgba(252,253,255,0.97);
-  padding: 26px 30px; max-width: 420px; border-radius: var(--r-panel);
+  background: rgba(252,253,255,0.97);
+  padding: 32px 36px; max-width: 440px; border-radius: var(--r-panel);
   animation: floatUp 0.7s var(--motion); z-index: 2;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 @keyframes floatUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
 .imp-hero-eyebrow {
@@ -654,20 +663,20 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; }
 
 /* ─── Responsive ────────────────────────────────────────── */
 
-/* Mobile: hide search and some icons from the header row, show hamburger */
-@media (max-width: 768px) {
+/* Mobile & Tablet: hide search and some icons from the header row, show hamburger */
+@media (max-width: 900px) {
   .header-search { display: none; }
+  .header-search.mobile-open {
+    display: flex; position: absolute; top: 100%; left: 0; right: 0;
+    margin: 8px 16px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .header-mobile-search-toggle { display: flex !important; }
+  .megabar { display: none !important; }
   .header-icons span { display: none; }
   .topbar { flex-direction: column; gap: 4px; padding: 6px 16px; font-size: 10px; }
   .topbar .topbar-left span:last-child { display: none; }
-}
 
-/* Desktop: hide hamburger */
-@media (min-width: 769px) {
-  .header-mobile-toggle { display: none !important; }
-}
-
-@media (max-width: 900px) {
+  /* Other layout adjustments for <= 900px */
   .catgrid { grid-template-columns: repeat(2, 1fr); }
   .prodgrid { grid-template-columns: repeat(2, 1fr); }
   .plp-wrap { flex-direction: column; }
@@ -675,11 +684,18 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; }
   .pdp-gallery { width: 100%; }
   .imp-footer { flex-direction: column; gap: 24px; }
 }
+
+/* Desktop: hide hamburger */
+@media (min-width: 901px) {
+  .header-mobile-toggle { display: none !important; }
+  .header-mobile-search-toggle { display: none !important; }
+}
 @media (max-width: 600px) {
   .header-row { padding: 12px 16px; }
-  .megabar { padding: 0 16px; }
   .section { padding: 24px 16px; }
-  .imp-hero { margin: 12px 16px; height: 300px; }
-  .imp-hero-copy { left: 16px; bottom: 16px; padding: 16px 20px; max-width: calc(100% - 32px); }
+  .imp-hero { margin: 12px 16px; height: 320px; }
+  .imp-hero-content-wrapper { padding: 0 16px; justify-content: center; }
+  .imp-hero-copy { padding: 20px; max-width: 100%; text-align: center; }
+  .imp-hero-eyebrow { justify-content: center; }
   .imp-hero-copy h1 { font-size: 20px; }
 }
