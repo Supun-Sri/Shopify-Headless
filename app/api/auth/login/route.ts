@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 
-// Random string generator for PKCE challenge and state
+// Random string generator for PKCE challenge and state using base64url
 function generateRandomString(length: number) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
+  return crypto.randomBytes(length).toString('base64url').slice(0, length);
+}
+
+function generateCodeChallenge(codeVerifier: string) {
+  return crypto.createHash('sha256').update(codeVerifier).digest('base64url');
 }
 
 export async function GET(request: Request) {
@@ -23,7 +23,9 @@ export async function GET(request: Request) {
   const state = generateRandomString(32);
   const nonce = generateRandomString(32);
 
+  // 2. Generate PKCE code verifier and challenge
   const codeVerifier = generateRandomString(64);
+  const codeChallenge = generateCodeChallenge(codeVerifier);
   
   const cookieStore = await cookies();
   cookieStore.set('shopify_auth_state', state, { httpOnly: true, secure: true, maxAge: 60 * 10 });
@@ -41,6 +43,8 @@ export async function GET(request: Request) {
   authorizationUrl.searchParams.append('scope', 'openid email unauthenticated_read_customer_account unauthenticated_write_customer_account');
   authorizationUrl.searchParams.append('state', state);
   authorizationUrl.searchParams.append('nonce', nonce);
+  authorizationUrl.searchParams.append('code_challenge', codeChallenge);
+  authorizationUrl.searchParams.append('code_challenge_method', 'S256');
 
   return NextResponse.redirect(authorizationUrl.toString());
 }
