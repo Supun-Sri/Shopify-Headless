@@ -8,8 +8,10 @@ import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/lib/cart-store';
 import { useCompareStore } from '@/lib/compare-store';
 import { addLineItemAction } from '@/app/actions/cart';
+import { usePrice } from '@/lib/use-price';
 
 export default function ProductDetailClient({ product }: { product: ShopifyProduct }) {
+  const { formatWithVat, isVatInclusive } = usePrice();
   const [selectedVariantId, setSelectedVariantId] = useState(product.variants[0]?.id || '');
   const [activeThumb, setActiveThumb] = useState(0);
   const [activeTab, setActiveTab] = useState<'desc' | 'docs' | 'reviews'>('desc');
@@ -124,8 +126,8 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
 
           {/* Price box */}
           <div className="pdp-pricebox">
-            <div className="pdp-price">{formatPrice(selectedVariant?.price ?? product.priceRange.minVariantPrice)}</div>
-            <div className="pdp-vatnote">Price includes 5% VAT</div>
+            <div className="pdp-price">{formatWithVat(selectedVariant?.price ?? product.priceRange.minVariantPrice)}</div>
+            <div className="pdp-vatnote">Price {isVatInclusive ? 'includes 5% VAT' : 'excludes VAT'}</div>
           </div>
 
           {/* Stock */}

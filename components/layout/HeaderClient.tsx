@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '@/lib/cart-store';
+import { useVatStore } from '@/lib/vat-store';
 import { useRouter, usePathname } from 'next/navigation';
 import type { ShopifyCollection } from '@/lib/types';
 
@@ -22,6 +23,10 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const totalQuantity = useCartStore((s) => s.totalQuantity());
   const toggleCart = useCartStore((s) => s.toggleCart);
+  
+  const isVatInclusive = useVatStore((s) => s.isVatInclusive);
+  const setVatInclusive = useVatStore((s) => s.setVatInclusive);
+
   const router = useRouter();
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
@@ -90,8 +95,20 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
         </div>
         <div className="topbar-right">
           <div className="vattoggle">
-            <button className="active" type="button">Inc VAT</button>
-            <button type="button">Ex VAT</button>
+            <button 
+              className={isVatInclusive ? 'active' : ''} 
+              type="button" 
+              onClick={() => setVatInclusive(true)}
+            >
+              Inc VAT
+            </button>
+            <button 
+              className={!isVatInclusive ? 'active' : ''} 
+              type="button" 
+              onClick={() => setVatInclusive(false)}
+            >
+              Ex VAT
+            </button>
           </div>
           <div className="topbar-language">
             <select aria-label="Language">
@@ -156,10 +173,10 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             <div className="header-icon-box">♡</div>
             <span>Wishlist</span>
           </div>
-          <div className="header-icon" tabIndex={0} role="button" aria-label="Account">
+          <Link href="/account" className="header-icon" aria-label="Account" style={{ textDecoration: 'none' }}>
             <div className="header-icon-box">☺</div>
             <span>Account</span>
-          </div>
+          </Link>
           <button
             className="header-icon cart-icon-btn"
             type="button"

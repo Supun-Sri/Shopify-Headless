@@ -7,8 +7,10 @@ import type { ShopifyProduct } from '@/lib/types';
 import { useCartStore } from '@/lib/cart-store';
 import { useCompareStore } from '@/lib/compare-store';
 import { addLineItemAction } from '@/app/actions/cart';
+import { usePrice } from '@/lib/use-price';
 
 export default function CompareClient() {
+  const { formatWithVat, isVatInclusive, vatRate } = usePrice();
   const [mounted, setMounted] = useState(false);
   const products = useCompareStore((s) => s.products);
   const removeProduct = useCompareStore((s) => s.removeProduct);
@@ -79,9 +81,13 @@ export default function CompareClient() {
           <tr>
             <td style={{ width: '200px', border: '1px solid var(--line)', padding: '16px' }}></td>
             {products.map((p) => {
-              const priceNum = parseFloat(p.priceRange.minVariantPrice.amount);
-              const exclTax = (priceNum / 1.05).toFixed(2); // 5% VAT reverse calculation
-              const currency = p.priceRange.minVariantPrice.currencyCode;
+              const basePrice = p.priceRange.minVariantPrice;
+              
+              // If globally exclusive is toggled on, formatWithVat already outputs the ex-tax price. 
+              // We'll show the other value in the subtitle.
+              const priceNum = parseFloat(basePrice.amount);
+              const exclTaxAmount = priceNum / (1 + vatRate);
+              const exclTaxStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: basePrice.currencyCode }).format(exclTaxAmount);
 
               return (
                 <td key={p.id} style={{ border: '1px solid var(--line)', padding: '24px', verticalAlign: 'top', position: 'relative', width: '300px' }}>
@@ -104,8 +110,8 @@ export default function CompareClient() {
                       {p.title}
                     </Link>
                     <div>
-                      <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--navy)' }}>{currency} {priceNum.toFixed(2)}</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--muted)' }}>Excl. Tax: {currency} {exclTax}</div>
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--navy)' }}>{formatWithVat(basePrice)}</div>
+                      {isVatInclusive && <div style={{ fontSize: '10.5px', color: 'var(--muted)' }}>Excl. Tax: {exclTaxStr}</div>}
                     </div>
                     <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                       <button 

@@ -5,6 +5,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartDrawer from "@/components/cart/CartDrawer";
 import CartProvider from "@/components/providers/cart-provider";
+import WishlistProvider from "@/components/providers/WishlistProvider";
+import { getWishlist } from "@/app/actions/wishlist";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -37,19 +39,23 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const wishlistItems = await getWishlist();
+
   return (
     <html lang="en" className={poppins.variable}>
       <body>
         <CartProvider>
-          <Header />
-          <main id="main-content">{children}</main>
-          <Footer />
-          <CartDrawer />
+          <WishlistProvider initialItems={wishlistItems}>
+            <Header />
+            <main id="main-content">{children}</main>
+            <Footer />
+            <CartDrawer />
+          </WishlistProvider>
         </CartProvider>
       </body>
     </html>

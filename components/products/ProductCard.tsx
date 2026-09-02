@@ -4,9 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useCallback } from 'react';
 import type { ShopifyProduct } from '@/lib/types';
-import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/lib/cart-store';
+import { useWishlistStore } from '@/lib/wishlist-store';
 import { addLineItemAction } from '@/app/actions/cart';
+import { usePrice } from '@/lib/use-price';
 
 interface ProductCardProps {
   product: ShopifyProduct;
@@ -14,10 +15,15 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, priority = false }: ProductCardProps) {
+  const { formatWithVat } = usePrice();
   const image = product.images[0];
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
-  const [wishlisted, setWishlisted] = useState(false);
+  
+  const wishlistItems = useWishlistStore((s) => s.items);
+  const toggleWishlist = useWishlistStore((s) => s.toggleItem);
+  const wishlisted = wishlistItems.includes(product.id);
+
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
   const cartId = useCartStore((s) => s.cartId);
@@ -83,8 +89,12 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
       {/* Wishlist button */}
       <button
         className={`prod-card-wish ${wishlisted ? 'active' : ''}`}
-        onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
         aria-label={wishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleWishlist(product.id);
+        }}
       >
         {wishlisted ? '♥' : '♡'}
       </button>
@@ -127,8 +137,9 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             : `✓ In Stock${stockQty !== null ? ` (${stockQty})` : ''}`}
         </div>
         <div className="prod-card-price">
-          {formatPrice(product.priceRange.minVariantPrice)}
-          <small> / unit</small>
+            <span className="card-price-value">
+              {formatWithVat(defaultVariant?.price ?? product.priceRange.minVariantPrice)}
+            </span><small> / unit</small>
         </div>
         <button
           className={`prod-card-add ${added ? 'added' : ''}`}
