@@ -40,7 +40,8 @@ export async function GET(request: Request) {
   authorizationUrl.searchParams.append('client_id', clientId);
   authorizationUrl.searchParams.append('response_type', 'code');
   authorizationUrl.searchParams.append('redirect_uri', redirectUri);
-  authorizationUrl.searchParams.append('scope', 'openid email unauthenticated_read_customer_account unauthenticated_write_customer_account');
+  // Using standard OIDC scopes for Customer Account API
+  authorizationUrl.searchParams.append('scope', 'openid email');
   authorizationUrl.searchParams.append('state', state);
   authorizationUrl.searchParams.append('nonce', nonce);
   authorizationUrl.searchParams.append('code_challenge', codeChallenge);
