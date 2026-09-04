@@ -64,7 +64,7 @@ export const useWishlistStore = create<WishlistState>()(
         syncCookie(updated);
 
         try {
-          const res = await toggleServer(productId, nextAction);
+          const res = await toggleServer(productId, nextAction, updated);
           if (res && res.error === 'UNAUTHENTICATED') {
             set({ items: [], isLoggedIn: false });
             window.location.href = '/api/auth/login';
@@ -93,7 +93,7 @@ export const useWishlistStore = create<WishlistState>()(
         set({ items: updated });
         syncCookie(updated);
         try {
-          await toggleServer(productId, 'remove');
+          await toggleServer(productId, 'remove', updated);
         } catch {
           // Keep local state
         }

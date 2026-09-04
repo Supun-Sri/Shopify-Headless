@@ -1,10 +1,11 @@
 import { getWishlist } from '@/app/actions/wishlist';
 import { getAllProducts } from '@/lib/shopify-api';
-import WishlistGrid from '@/components/account/WishlistGrid';
+import WishlistGrid, { WishlistCountBadge } from '@/components/account/WishlistGrid';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function WishlistPage() {
@@ -18,13 +19,10 @@ export default async function WishlistPage() {
   }
 
   const itemIds = await getWishlist();
-  let products: any[] = [];
-  if (itemIds.length > 0) {
-    const { products: all } = await getAllProducts({ first: 250 });
-    products = all.filter((p) =>
-      itemIds.includes(p.id) || itemIds.some((id) => p.id.endsWith('/' + id) || id.endsWith('/' + p.id))
-    );
-  }
+  const { products: allProducts } = await getAllProducts({ first: 250 });
+  const serverWishlistedProducts = allProducts.filter((p) =>
+    itemIds.includes(p.id) || itemIds.some((id) => p.id.endsWith('/' + id) || id.endsWith('/' + p.id))
+  );
 
   return (
     <div className="store-frame" style={{ padding: '40px 28px 64px', minHeight: '70vh' }}>
@@ -92,11 +90,10 @@ export default async function WishlistPage() {
               }}
             >
               <span>Wishlist</span>
-              {itemIds.length > 0 && (
-                <span style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}>
-                  {itemIds.length}
-                </span>
-              )}
+              <WishlistCountBadge
+                initialCount={itemIds.length}
+                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}
+              />
             </Link>
             {isLoggedIn && (
               <Link
@@ -131,7 +128,7 @@ export default async function WishlistPage() {
 
         {/* Main Content */}
         <div style={{ flex: 1, minWidth: '320px' }}>
-          <WishlistGrid initialProducts={products} />
+          <WishlistGrid initialProducts={serverWishlistedProducts} catalogProducts={allProducts} />
         </div>
       </div>
     </div>

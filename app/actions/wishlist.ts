@@ -1,10 +1,8 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { getCustomerGraphQLUrl, decodeIdToken } from '@/lib/shopify-customer';
-
-const METAFIELD_NAMESPACE = 'custom';
-const METAFIELD_KEY = 'wishlist';
+import { revalidatePath } from 'next/cache';
+import { decodeIdToken } from '@/lib/shopify-customer';
 
 function getCustomerKey(idToken?: string): string {
   if (!idToken) return 'default';
@@ -13,6 +11,23 @@ function getCustomerKey(idToken?: string): string {
     return decoded.sub.replace(/[^a-zA-Z0-9]/g, '_');
   }
   return 'default';
+}
+
+function parseWishlistCookie(cookieVal?: string): string[] {
+  if (!cookieVal) return [];
+  try {
+    let raw = cookieVal;
+    if (raw.includes('%')) {
+      try { raw = decodeURIComponent(raw); } catch {}
+    }
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch {}
+  try {
+    const parsed = JSON.parse(cookieVal);
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch {}
+  return [];
 }
 
 export async function getWishlist(): Promise<string[]> {
@@ -28,56 +43,13 @@ export async function getWishlist(): Promise<string[]> {
 
     const customerKey = getCustomerKey(idToken);
     const customerCookie = `customer_wishlist_${customerKey}`;
-    const cookieVal = cookieStore.get(customerCookie)?.value || cookieStore.get('wishlist_items')?.value;
+    
+    const fromCustomer = parseWishlistCookie(cookieStore.get(customerCookie)?.value);
+    const fromSession = parseWishlistCookie(cookieStore.get('wishlist_items')?.value);
 
-    if (cookieVal) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(cookieVal));
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        // Fall back to API
-      }
-    }
-
-    // Check Customer Account API
-    if (accessToken) {
-      try {
-        const endpoint = getCustomerGraphQLUrl();
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': accessToken,
-          },
-          body: JSON.stringify({
-            query: `
-              query getCustomerWishlist {
-                customer {
-                  id
-                  metafield(namespace: "${METAFIELD_NAMESPACE}", key: "${METAFIELD_KEY}") {
-                    value
-                  }
-                }
-              }
-            `,
-          }),
-          cache: 'no-store',
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          const val = json?.data?.customer?.metafield?.value;
-          if (val) {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed)) return parsed;
-          }
-        }
-      } catch {
-        // Ignore API errors
-      }
-    }
-
-    return [];
+    // Merge both sources so a newly written session cookie isn't masked by an older empty customer cookie
+    const combined = Array.from(new Set([...fromCustomer, ...fromSession]));
+    return combined;
   } catch (err: any) {
     if (err?.digest === 'DYNAMIC_SERVER_USAGE' || err?.message?.includes('Dynamic server usage')) {
       throw err;
@@ -94,7 +66,8 @@ export interface WishlistResult {
 
 export async function toggleWishlistItem(
   productId: string,
-  action?: 'add' | 'remove'
+  action?: 'add' | 'remove',
+  clientItems?: string[]
 ): Promise<WishlistResult> {
   try {
     const cookieStore = await cookies();
@@ -106,31 +79,34 @@ export async function toggleWishlistItem(
       return { success: false, items: [], error: 'UNAUTHENTICATED' };
     }
 
-    const current = await getWishlist();
+    const baseItems = Array.isArray(clientItems) && clientItems.length > 0
+      ? clientItems
+      : await getWishlist();
+
     let updated: string[];
     if (action === 'add') {
-      updated = Array.from(new Set([...current, productId]));
+      updated = Array.from(new Set([...baseItems, productId]));
     } else if (action === 'remove') {
-      updated = current.filter(
+      updated = baseItems.filter(
         (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
       );
     } else {
       const isAdded =
-        current.includes(productId) ||
-        current.some((id) => productId.endsWith('/' + id) || id.endsWith('/' + productId));
+        baseItems.includes(productId) ||
+        baseItems.some((id) => productId.endsWith('/' + id) || id.endsWith('/' + productId));
       updated = isAdded
-        ? current.filter(
+        ? baseItems.filter(
             (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
           )
-        : [...current, productId];
+        : [...baseItems, productId];
     }
 
     const customerKey = getCustomerKey(idToken);
     const customerCookie = `customer_wishlist_${customerKey}`;
-    const encoded = encodeURIComponent(JSON.stringify(updated));
+    const serialized = JSON.stringify(updated);
 
     // Save to customer-specific cookie
-    cookieStore.set(customerCookie, encoded, {
+    cookieStore.set(customerCookie, serialized, {
       path: '/',
       maxAge: 60 * 60 * 24 * 365,
       sameSite: 'lax',
@@ -138,59 +114,18 @@ export async function toggleWishlistItem(
     });
 
     // Also sync session cookie
-    cookieStore.set('wishlist_items', encoded, {
+    cookieStore.set('wishlist_items', serialized, {
       path: '/',
       maxAge: 60 * 60 * 24 * 365,
       sameSite: 'lax',
       httpOnly: false,
     });
 
-    // Sync to Shopify Customer Account API if token is valid
-    if (accessToken) {
-      try {
-        const endpoint = getCustomerGraphQLUrl();
-        const custRes = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': accessToken },
-          body: JSON.stringify({ query: '{ customer { id } }' }),
-          cache: 'no-store',
-        });
-        if (custRes.ok) {
-          const custJson = await custRes.json();
-          const customerId = custJson?.data?.customer?.id;
-          if (customerId) {
-            await fetch(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': accessToken },
-              body: JSON.stringify({
-                query: `
-                  mutation setCustomerWishlist($metafields: [MetafieldsSetInput!]!) {
-                    metafieldsSet(metafields: $metafields) {
-                      metafields { key value }
-                      userErrors { field message }
-                    }
-                  }
-                `,
-                variables: {
-                  metafields: [
-                    {
-                      ownerId: customerId,
-                      namespace: METAFIELD_NAMESPACE,
-                      key: METAFIELD_KEY,
-                      type: 'json',
-                      value: JSON.stringify(updated),
-                    },
-                  ],
-                },
-              }),
-              cache: 'no-store',
-            });
-          }
-        }
-      } catch (syncErr) {
-        console.warn('Customer metafield sync skipped:', syncErr);
-      }
-    }
+    // Revalidate Next.js cache so any prefetched or cached customer pages update immediately
+    try {
+      revalidatePath('/account/wishlist');
+      revalidatePath('/account');
+    } catch {}
 
     return { success: true, items: updated };
   } catch (err: any) {

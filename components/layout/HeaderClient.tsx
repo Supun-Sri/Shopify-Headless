@@ -188,7 +188,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             <span>Compare</span>
           </Link>
           
-          <Link href="/account/wishlist" className="icon" aria-label={`Wishlist with ${wishlistCount} items`}>
+          <Link href="/account/wishlist" prefetch={false} className="icon" aria-label={`Wishlist with ${wishlistCount} items`}>
             <div className="box">
               <svg className={`ic lg ${wishlistCount > 0 ? 'fill' : ''}`} viewBox="0 0 24 24" fill={wishlistCount > 0 ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.75">
                 <path d="M12 20.2C9.5 18 4.5 14.4 4.5 10.6A3.9 3.9 0 0 1 12 8.4a3.9 3.9 0 0 1 7.5 2.2c0 3.8-5 7.4-7.5 9.6Z"/>
@@ -200,7 +200,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             <span>Wishlist</span>
           </Link>
 
-          <Link href="/account" className="icon" aria-label="Account">
+          <Link href="/account" prefetch={false} className="icon" aria-label="Account">
             <div className="box">
               <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                 <circle cx="12" cy="8.5" r="3.5"/>

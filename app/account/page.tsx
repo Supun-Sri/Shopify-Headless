@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { getCustomerAccountData } from '@/lib/shopify-customer';
 import { getWishlist } from '@/app/actions/wishlist';
 import { getAllProducts } from '@/lib/shopify-api';
-import ProductCard from '@/components/products/ProductCard';
+import WishlistGrid, { WishlistCountBadge } from '@/components/account/WishlistGrid';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function AccountPage() {
@@ -16,13 +17,10 @@ export default async function AccountPage() {
   }
 
   const wishlistIds = await getWishlist();
-  let wishlistedProducts: any[] = [];
-  if (wishlistIds.length > 0) {
-    const { products: all } = await getAllProducts({ first: 50 });
-    wishlistedProducts = all.filter((p) =>
-      wishlistIds.includes(p.id) || wishlistIds.some((id) => p.id.endsWith('/' + id) || id.endsWith('/' + p.id))
-    );
-  }
+  const { products: allProducts } = await getAllProducts({ first: 250 });
+  const wishlistedProducts = allProducts.filter((p) =>
+    wishlistIds.includes(p.id) || wishlistIds.some((id) => p.id.endsWith('/' + id) || id.endsWith('/' + p.id))
+  );
 
   const orders = customer.orders || [];
 
@@ -88,11 +86,10 @@ export default async function AccountPage() {
               }}
             >
               <span>Wishlist</span>
-              {wishlistIds.length > 0 && (
-                <span style={{ background: 'var(--slot)', color: 'var(--navy)', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}>
-                  {wishlistIds.length}
-                </span>
-              )}
+              <WishlistCountBadge
+                initialCount={wishlistIds.length}
+                style={{ background: 'var(--slot)', color: 'var(--navy)', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}
+              />
             </Link>
             <Link
               href="/account/orders"
@@ -149,7 +146,7 @@ export default async function AccountPage() {
                 Saved in Wishlist
               </div>
               <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--navy)', marginTop: '4px' }}>
-                {wishlistIds.length}
+                <WishlistCountBadge initialCount={wishlistIds.length} showZero={true} />
               </div>
               <Link href="/account/wishlist" style={{ fontSize: '11.5px', color: 'var(--imperial-blue)', fontWeight: 600, textDecoration: 'none' }}>
                 View wishlist →
@@ -235,8 +232,11 @@ export default async function AccountPage() {
           <div style={{ background: '#fff', padding: '24px', borderRadius: 'var(--r-card)', boxShadow: 'var(--sh-soft)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
               <div>
-                <h3 style={{ fontSize: '15px', color: 'var(--navy)', margin: 0, fontWeight: 700 }}>
-                  Wishlist ({wishlistIds.length})
+                <h3 style={{ fontSize: '15px', color: 'var(--navy)', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>Wishlist</span>
+                  <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 500 }}>
+                    (<WishlistCountBadge initialCount={wishlistIds.length} showZero={true} />)
+                  </span>
                 </h3>
                 <span style={{ fontSize: '11.5px', color: 'var(--muted)' }}>
                   Items you saved for project consideration
@@ -247,20 +247,12 @@ export default async function AccountPage() {
               </Link>
             </div>
 
-            {wishlistedProducts.length === 0 ? (
-              <div style={{ padding: '20px 0', color: 'var(--muted)', fontSize: '13.5px' }}>
-                <p style={{ margin: '0 0 14px' }}>Your wishlist is currently empty.</p>
-                <Link href="/products" className="btn secondary" style={{ fontSize: '12px', padding: '9px 16px' }}>
-                  Explore Catalogue
-                </Link>
-              </div>
-            ) : (
-              <div className="prodgrid">
-                {wishlistedProducts.slice(0, 4).map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            )}
+            <WishlistGrid
+              initialProducts={wishlistedProducts}
+              catalogProducts={allProducts}
+              maxItems={4}
+              compact={true}
+            />
           </div>
         </div>
       </div>
