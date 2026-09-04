@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import CartProvider from "@/components/providers/cart-provider";
 import WishlistProvider from "@/components/providers/WishlistProvider";
 import { getWishlist } from "@/app/actions/wishlist";
+import { cookies } from "next/headers";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -43,13 +44,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('customer_access_token')?.value;
+  const idToken = cookieStore.get('customer_id_token')?.value;
+  const isLoggedIn = Boolean(accessToken || idToken);
+
   const wishlistItems = await getWishlist();
 
   return (
     <html lang="en" className={poppins.variable}>
       <body>
         <CartProvider>
-          <WishlistProvider initialItems={wishlistItems}>
+          <WishlistProvider initialItems={wishlistItems} isLoggedIn={isLoggedIn}>
             <Header />
             <main id="main-content">{children}</main>
             <Footer />

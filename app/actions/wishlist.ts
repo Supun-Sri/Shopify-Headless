@@ -86,22 +86,44 @@ export async function getWishlist(): Promise<string[]> {
   }
 }
 
-export async function toggleWishlistItem(productId: string): Promise<string[]> {
+export interface WishlistResult {
+  success: boolean;
+  items: string[];
+  error?: string;
+}
+
+export async function toggleWishlistItem(
+  productId: string,
+  action?: 'add' | 'remove'
+): Promise<WishlistResult> {
   try {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get('customer_access_token')?.value;
     const idToken = cookieStore.get('customer_id_token')?.value;
 
-    // Reject unauthenticated requests
+    // Reject unauthenticated requests gracefully
     if (!accessToken && !idToken) {
-      throw new Error('UNAUTHENTICATED');
+      return { success: false, items: [], error: 'UNAUTHENTICATED' };
     }
 
     const current = await getWishlist();
-    const isAdded = current.includes(productId);
-    const updated = isAdded
-      ? current.filter((id) => id !== productId)
-      : [...current, productId];
+    let updated: string[];
+    if (action === 'add') {
+      updated = Array.from(new Set([...current, productId]));
+    } else if (action === 'remove') {
+      updated = current.filter(
+        (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
+      );
+    } else {
+      const isAdded =
+        current.includes(productId) ||
+        current.some((id) => productId.endsWith('/' + id) || id.endsWith('/' + productId));
+      updated = isAdded
+        ? current.filter(
+            (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
+          )
+        : [...current, productId];
+    }
 
     const customerKey = getCustomerKey(idToken);
     const customerCookie = `customer_wishlist_${customerKey}`;
@@ -170,12 +192,9 @@ export async function toggleWishlistItem(productId: string): Promise<string[]> {
       }
     }
 
-    return updated;
+    return { success: true, items: updated };
   } catch (err: any) {
-    if (err?.message === 'UNAUTHENTICATED') {
-      throw err;
-    }
     console.error('Failed to toggle wishlist:', err);
-    return [];
+    return { success: false, items: [], error: err?.message || 'Server error' };
   }
 }

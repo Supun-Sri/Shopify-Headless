@@ -6,6 +6,8 @@ import { toggleWishlistItem as toggleServer } from '@/app/actions/wishlist';
 
 interface WishlistState {
   items: string[];
+  isLoggedIn: boolean;
+  setLoggedIn: (loggedIn: boolean) => void;
   setItems: (items: string[]) => void;
   toggleItem: (productId: string) => Promise<boolean>;
   removeItem: (productId: string) => Promise<void>;
@@ -27,55 +29,71 @@ export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
       items: [],
+      isLoggedIn: false,
+      setLoggedIn: (isLoggedIn) => set({ isLoggedIn }),
       setItems: (items) => {
         set({ items });
         syncCookie(items);
       },
-      hasItem: (productId: string) => get().items.includes(productId),
+      hasItem: (productId: string) =>
+        get().items.includes(productId) ||
+        get().items.some((id) => productId.endsWith('/' + id) || id.endsWith('/' + productId)),
       toggleItem: async (productId: string) => {
+        const loggedIn = get().isLoggedIn || isCustomerLoggedIn();
         // Strictly require login for wishlist
-        if (!isCustomerLoggedIn()) {
+        if (!loggedIn) {
           window.location.href = '/api/auth/login';
           return false;
         }
 
         const current = get().items;
-        const isAdded = current.includes(productId);
-        const updated = isAdded
-          ? current.filter((id) => id !== productId)
-          : [...current, productId];
+        const isCurrentlyAdded =
+          current.includes(productId) ||
+          current.some((id) => productId.endsWith('/' + id) || id.endsWith('/' + productId));
+        const nextAction: 'add' | 'remove' = isCurrentlyAdded ? 'remove' : 'add';
 
-        // Immediate optimistic update to state & cookie
+        const updated =
+          nextAction === 'add'
+            ? Array.from(new Set([...current, productId]))
+            : current.filter(
+                (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
+              );
+
+        // Immediate optimistic update
         set({ items: updated });
         syncCookie(updated);
 
         try {
-          const serverResult = await toggleServer(productId);
-          if (Array.isArray(serverResult)) {
-            set({ items: serverResult });
-            syncCookie(serverResult);
-          }
-          return true;
-        } catch (err: any) {
-          if (err?.message === 'UNAUTHENTICATED') {
-            set({ items: [] });
+          const res = await toggleServer(productId, nextAction);
+          if (res && res.error === 'UNAUTHENTICATED') {
+            set({ items: [], isLoggedIn: false });
             window.location.href = '/api/auth/login';
             return false;
           }
+          if (res && res.success && Array.isArray(res.items)) {
+            set({ items: res.items });
+            syncCookie(res.items);
+          }
+          return true;
+        } catch (err) {
+          console.warn('Server wishlist sync error, keeping optimistic state:', err);
           return true;
         }
       },
       removeItem: async (productId: string) => {
-        if (!isCustomerLoggedIn()) {
+        const loggedIn = get().isLoggedIn || isCustomerLoggedIn();
+        if (!loggedIn) {
           window.location.href = '/api/auth/login';
           return;
         }
         const current = get().items;
-        const updated = current.filter((id) => id !== productId);
+        const updated = current.filter(
+          (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
+        );
         set({ items: updated });
         syncCookie(updated);
         try {
-          await toggleServer(productId);
+          await toggleServer(productId, 'remove');
         } catch {
           // Keep local state
         }
