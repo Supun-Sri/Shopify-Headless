@@ -3,7 +3,6 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import CartDrawer from "@/components/cart/CartDrawer";
 import CartProvider from "@/components/providers/cart-provider";
 import WishlistProvider from "@/components/providers/WishlistProvider";
 import { getWishlist } from "@/app/actions/wishlist";
@@ -54,7 +53,6 @@ export default async function RootLayout({
             <Header />
             <main id="main-content">{children}</main>
             <Footer />
-            <CartDrawer />
           </WishlistProvider>
         </CartProvider>
       </body>

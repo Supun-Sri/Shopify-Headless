@@ -3,6 +3,7 @@ import { getAllProducts, getCollectionProducts, getProductFilters } from '@/lib/
 import type { SortKey } from '@/lib/types';
 import ProductCard from '@/components/products/ProductCard';
 import PLPFilters from '@/components/products/PLPFilters';
+import PLPToolbar from '@/components/products/PLPToolbar';
 import { Suspense } from 'react';
 import Link from 'next/link';
 
@@ -38,7 +39,7 @@ function ProductGridSkeleton() {
   return (
     <div className="prodgrid">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="skeleton skeleton-card" />
+        <div key={i} className="card" style={{ height: '340px', background: 'var(--slot)' }} />
       ))}
     </div>
   );
@@ -58,7 +59,6 @@ async function ProductGrid({
       const result = await getCollectionProducts(collection, { first: 48, sortKey, reverse });
       products = result.products;
     } else {
-      // Build query string with all active filters
       const queryParts: string[] = [];
       if (q) queryParts.push(`title:${q}*`);
       if (vendor) queryParts.push(`vendor:"${vendor}"`);
@@ -73,8 +73,6 @@ async function ProductGrid({
       products = result.products;
     }
 
-    // Client-side filter for vendor/type/tags when browsing a collection
-    // (collection queries don't support arbitrary query strings)
     if (collection) {
       if (vendor) products = products.filter((p) => p.vendor === vendor);
       if (type) products = products.filter((p) => p.productType === type);
@@ -87,29 +85,50 @@ async function ProductGrid({
 
     if (products.length === 0) {
       return (
-        <div className="error-page" style={{ minHeight: '40vh' }}>
-          <h2>No Products Found</h2>
-          <p>Try adjusting your filters or <Link href="/products">browse all products</Link>.</p>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--muted)' }}>
+          <h2 style={{ fontSize: '20px', color: 'var(--navy)', marginBottom: '12px' }}>No Products Found</h2>
+          <p style={{ marginBottom: '24px' }}>Try adjusting your filters or search query.</p>
+          <Link href="/products" className="btn secondary">
+            Reset Filters
+          </Link>
         </div>
       );
     }
 
     return (
       <>
-        <div className="plp-toolbar">
-          <span className="plp-count">{products.length} product{products.length !== 1 ? 's' : ''}</span>
-        </div>
+        <PLPToolbar totalCount={products.length} currentSort={sort || ''} />
         <div className="prodgrid">
           {products.map((product, i) => (
             <ProductCard key={product.id} product={product} priority={i < 4} />
           ))}
+        </div>
+
+        {/* Pager */}
+        <div className="pagerow">
+          <div className="pager">
+            <button className="pg nav" aria-label="Previous page">
+              <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button className="pg active">1</button>
+            <button className="pg">2</button>
+            <button className="pg">3</button>
+            <button className="pg">4</button>
+            <button className="pg nav" aria-label="Next page">
+              <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
         </div>
       </>
     );
   } catch (err) {
     console.error('ProductGrid error:', err);
     return (
-      <div className="error-page" style={{ minHeight: '40vh' }}>
+      <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--muted)' }}>
         <h2>Products</h2>
         <p>Could not load products. Please check your Shopify connection.</p>
       </div>
@@ -120,12 +139,10 @@ async function ProductGrid({
 export default async function ProductsPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  // Normalise tag param — could be string or string[]
   const tags = params.tag
     ? Array.isArray(params.tag) ? params.tag : [params.tag]
     : [];
 
-  // Fetch filter data and product grid in parallel
   const [filters] = await Promise.all([
     getProductFilters(params.collection),
   ]);
@@ -140,16 +157,25 @@ export default async function ProductsPage({ searchParams }: PageProps) {
     <>
       {/* Breadcrumb */}
       <div className="breadcrumb">
-        <a href="/">Home</a>
-        {params.collection
-          ? <> / <a href="/collections">Collections</a> / {collectionTitle}</>
-          : <> / {collectionTitle}</>
-        }
+        <Link href="/">Home</Link>
+        {params.collection ? (
+          <>
+            {' / '}
+            <Link href="/products">Products</Link>
+            {' / '}
+            <span>{collectionTitle}</span>
+          </>
+        ) : (
+          <>
+            {' / '}
+            <span>{collectionTitle}</span>
+          </>
+        )}
       </div>
 
-      <div className="plp-wrap">
-        {/* Real filter sidebar */}
-        <Suspense fallback={<div className="plp-filters plp-filters-skeleton" />}>
+      <div className="plpwrap">
+        {/* Filter sidebar */}
+        <Suspense fallback={<div className="filters skeleton" style={{ height: '400px' }} />}>
           <PLPFilters
             filters={filters}
             currentSort={params.sort || ''}
@@ -159,7 +185,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
         </Suspense>
 
         {/* Product grid */}
-        <main className="plp-main">
+        <main className="plpmain">
           <Suspense fallback={<ProductGridSkeleton />}>
             <ProductGrid
               sort={params.sort}

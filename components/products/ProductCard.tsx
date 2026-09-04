@@ -25,7 +25,6 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
   const wishlisted = wishlistItems.includes(product.id);
 
   const addItem = useCartStore((s) => s.addItem);
-  const openCart = useCartStore((s) => s.openCart);
   const cartId = useCartStore((s) => s.cartId);
   const syncFromApi = useCartStore((s) => s.syncFromApi);
 
@@ -48,7 +47,6 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
       handle: product.handle,
     });
     setAdded(true);
-    openCart();
     setTimeout(() => setAdded(false), 2000);
 
     try {
@@ -67,7 +65,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
     } finally {
       setIsAdding(false);
     }
-  }, [isAdding, isAvailable, defaultVariant, addItem, openCart, product, image, cartId, syncFromApi]);
+  }, [isAdding, isAvailable, defaultVariant, addItem, product, image, cartId, syncFromApi]);
 
   // ── Real stock status from Shopify ──
   const totalQty = product.totalInventory;
@@ -85,10 +83,10 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
   const isLowStock = stockStatus === 'Low Stock';
 
   return (
-    <div className="prod-card">
+    <div className="card prod-card">
       {/* Wishlist button */}
       <button
-        className={`prod-card-wish ${wishlisted ? 'active' : ''}`}
+        className={`wish prod-card-wish ${wishlisted ? 'active' : ''}`}
         aria-label={wishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
         onClick={(e) => {
           e.preventDefault();
@@ -96,11 +94,13 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
           toggleWishlist(product.id);
         }}
       >
-        {wishlisted ? '♥' : '♡'}
+        <svg className={`ic sm ${wishlisted ? 'fill' : ''}`} viewBox="0 0 24 24" fill={wishlisted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+          <path d="M12 20.2C9.5 18 4.5 14.4 4.5 10.6A3.9 3.9 0 0 1 12 8.4a3.9 3.9 0 0 1 7.5 2.2c0 3.8-5 7.4-7.5 9.6Z" />
+        </svg>
       </button>
 
       {/* Product image */}
-      <div className="prod-card-image">
+      <div className="ph prod-card-image">
         <Link
           href={`/products/${product.handle}`}
           id={`product-${product.handle}`}
@@ -112,42 +112,62 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
               alt={image.altText || product.title}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              style={{ objectFit: 'cover' }}
+              style={{ objectFit: 'contain', padding: '12px' }}
               priority={priority}
             />
           ) : (
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', fontSize: '11px', color: 'var(--silver)' }}>product</span>
+            <svg className="ic xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
           )}
         </Link>
       </div>
 
       {/* Card body */}
-      <div className="prod-card-body">
+      <div className="body prod-card-body">
         {product.vendor && (
-          <div className="prod-card-brand">{product.vendor}</div>
+          <div className="brand prod-card-brand">{product.vendor}</div>
         )}
         <Link href={`/products/${product.handle}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div className="prod-card-name">{product.title}</div>
+          <div className="name prod-card-name">{product.title}</div>
         </Link>
-        <div className={`prod-card-stock ${isLowStock ? 'low' : stockStatus === 'Out of Stock' ? 'out' : ''}`}>
+        <div className={`stock prod-card-stock ${isLowStock ? 'low' : stockStatus === 'Out of Stock' ? 'out' : ''}`}>
+          {isLowStock ? (
+            <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          ) : (
+            <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
           {stockStatus === 'Out of Stock'
-            ? '✗ Out of Stock'
+            ? 'Out of Stock'
             : isLowStock
-            ? `⚠ Low Stock${stockQty !== null ? ` — ${stockQty} left` : ''}`
-            : `✓ In Stock${stockQty !== null ? ` (${stockQty})` : ''}`}
+            ? `Low Stock${stockQty !== null ? ` — ${stockQty} left` : ''}`
+            : `In Stock${stockQty !== null ? ` (${stockQty})` : ''}`}
         </div>
-        <div className="prod-card-price">
-            <span className="card-price-value">
-              {formatWithVat(defaultVariant?.price ?? product.priceRange.minVariantPrice)}
-            </span><small> / unit</small>
+        <div className="price prod-card-price">
+          <span className="card-price-value">
+            {formatWithVat(defaultVariant?.price ?? product.priceRange.minVariantPrice)}
+          </span>
+          <small> / unit</small>
         </div>
         <button
-          className={`prod-card-add ${added ? 'added' : ''}`}
+          className={`qadd prod-card-add ${added ? 'added' : ''}`}
           onClick={handleAddToCart}
           disabled={!isAvailable || isAdding}
           aria-label={`Add ${product.title} to cart`}
         >
-          {isAdding ? 'Adding...' : added ? '✓ Added' : isAvailable ? '+ Quick Add' : 'Out of Stock'}
+          <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          {isAdding ? 'Adding...' : added ? '✓ Added' : isAvailable ? 'Quick Add' : 'Out of Stock'}
         </button>
       </div>
     </div>

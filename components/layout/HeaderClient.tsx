@@ -94,7 +94,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           <span className="topbar-email">info@imperial.ae</span>
         </div>
         <div className="topbar-right">
-          <div className="vattoggle">
+          <div className="segment on-dark">
             <button 
               className={isVatInclusive ? 'active' : ''} 
               type="button" 
@@ -116,7 +116,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
               <option>AR</option>
             </select>
           </div>
-          <div className="topbar-currency">
+          <div className="topbar-currency currency">
             <select aria-label="Currency">
               <option>AED</option>
               <option>USD</option>
@@ -128,19 +128,19 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
       </div>
 
       {/* ── Main header row ── */}
-      <div className="header-row" style={{ position: 'relative' }}>
-        <Link href="/" className="header-logo" aria-label="IMPERIAL Middle East Home">
+      <div className="headerrow" style={{ position: 'relative' }}>
+        <Link href="/" className="logo header-logo" aria-label="IMPERIAL Middle East Home">
           <Image
             src="/logo.png"
             alt="Imperial Middle East"
-            width={140}
-            height={48}
+            width={160}
+            height={50}
             priority
-            style={{ objectFit: 'contain', height: '48px', width: 'auto' }}
+            style={{ objectFit: 'contain', height: '50px', width: 'auto', borderRadius: '8px' }}
           />
         </Link>
 
-        <form className={`header-search ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search">
+        <form className={`searchbar ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search">
           <input
             type="search"
             placeholder="Search products, brands, categories..."
@@ -148,50 +148,80 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search products"
           />
-          <button type="submit" aria-label="Search">Search</button>
+          <button type="submit" aria-label="Search">
+            <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="7"/>
+              <path d="m16.5 16.5 4.5 4.5"/>
+            </svg>
+            Search
+          </button>
         </form>
 
-        <div className="header-icons">
+        <div className="headericons">
           <button
             className="header-mobile-toggle header-mobile-search-toggle"
             type="button"
             onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setMobileMenuOpen(false); }}
             aria-label="Toggle search"
+            style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <div className="box">
+              <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m16.5 16.5 4.5 4.5" />
+              </svg>
+            </div>
           </button>
           
-          <Link href="/compare" className="header-icon" aria-label="Compare" style={{ textDecoration: 'none' }}>
-            <div className="header-icon-box">⇄</div>
+          <Link href="/compare" className="icon" aria-label="Compare">
+            <div className="box">
+              <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path d="m16 3 4 4-4 4"/>
+                <path d="M20 7H4"/>
+                <path d="m8 21-4-4 4-4"/>
+                <path d="M4 17h16"/>
+              </svg>
+            </div>
             <span>Compare</span>
           </Link>
           
-          <div className="header-icon" tabIndex={0} role="button" aria-label="Wishlist">
-            <div className="header-icon-box">♡</div>
+          <Link href="/account/wishlist" className="icon" aria-label="Wishlist">
+            <div className="box">
+              <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path d="M12 20.2C9.5 18 4.5 14.4 4.5 10.6A3.9 3.9 0 0 1 12 8.4a3.9 3.9 0 0 1 7.5 2.2c0 3.8-5 7.4-7.5 9.6Z"/>
+              </svg>
+            </div>
             <span>Wishlist</span>
-          </div>
-          <Link href="/account" className="header-icon" aria-label="Account" style={{ textDecoration: 'none' }}>
-            <div className="header-icon-box">☺</div>
+          </Link>
+
+          <Link href="/account" className="icon" aria-label="Account">
+            <div className="box">
+              <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <circle cx="12" cy="8.5" r="3.5"/>
+                <path d="M5.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5"/>
+              </svg>
+            </div>
             <span>Account</span>
           </Link>
-          <button
-            className="header-icon cart-icon-btn"
-            type="button"
-            onClick={toggleCart}
+
+          <Link
+            href="/cart"
+            className="icon"
             aria-label={`Shopping cart with ${displayQuantity} items`}
             id="cart-toggle"
           >
-            <div className="header-icon-box cart-icon-box">
-              🛒
+            <div className="box">
+              <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path d="M3 4h2.5l2 11h11l2-8H6.5"/>
+                <circle cx="9" cy="19" r="1.5"/>
+                <circle cx="17" cy="19" r="1.5"/>
+              </svg>
               {mounted && totalQuantity > 0 && (
-                <span className="cart-badge">{totalQuantity}</span>
+                <span className="badge pop">{totalQuantity}</span>
               )}
             </div>
             <span>Cart</span>
-          </button>
+          </Link>
 
           <button
             className="header-mobile-toggle"
@@ -199,13 +229,16 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             onClick={() => { setMobileMenuOpen(!mobileMenuOpen); setMobileSearchOpen(false); }}
             aria-label="Toggle menu"
             aria-expanded={mobileMenuOpen}
+            style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {mobileMenuOpen
-                ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
-                : <><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="17" x2="20" y2="17" /></>
-              }
-            </svg>
+            <div className="box">
+              <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {mobileMenuOpen
+                  ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                  : <><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="17" x2="20" y2="17" /></>
+                }
+              </svg>
+            </div>
           </button>
         </div>
       </div>

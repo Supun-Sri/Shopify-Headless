@@ -167,7 +167,7 @@ export default function CartDrawer() {
                       fill
                       sizes="76px"
                       className="cart-item-img"
-                      style={{ objectFit: 'cover' }}
+                      style={{ objectFit: 'contain', padding: '4px' }}
                     />
                   ) : (
                     <div className="cart-item-placeholder" />
@@ -232,10 +232,13 @@ export default function CartDrawer() {
               <span>{formatPrice({ amount: subtotal, currencyCode: currency })}</span>
             </div>
             <p className="cart-tax-note">VAT (5%) and shipping calculated at checkout</p>
-            <button onClick={handleCheckout} className="cart-checkout-btn" id="checkout-button">
+            <button onClick={handleCheckout} className="btn primary block" style={{ marginBottom: '10px' }} id="checkout-button">
               Proceed to Checkout
+              <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
             </button>
-            <button onClick={closeCart} className="cart-continue-btn">
+            <button onClick={closeCart} className="btn secondary block">
               Continue Shopping
             </button>
           </div>

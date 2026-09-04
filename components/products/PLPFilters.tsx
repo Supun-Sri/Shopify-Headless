@@ -29,7 +29,6 @@ export default function PLPFilters({ filters, currentSort, currentVendor, curren
     });
   }, [router, pathname, searchParams]);
 
-  const handleSort = (e: React.ChangeEvent<HTMLSelectElement>) => updateParam('sort', e.target.value);
   const handleVendor = (vendor: string, checked: boolean) => updateParam('vendor', checked ? vendor : null);
   const handleType = (type: string, checked: boolean) => updateParam('type', checked ? type : null);
   const handleTag = (tag: string, checked: boolean) => {
@@ -43,7 +42,6 @@ export default function PLPFilters({ filters, currentSort, currentVendor, curren
     }
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   };
-  const handleMinPrice = (e: React.ChangeEvent<HTMLInputElement>) => updateParam('minPrice', e.target.value);
   const handleMaxPrice = (e: React.ChangeEvent<HTMLInputElement>) => updateParam('maxPrice', e.target.value);
   const handleClear = () => {
     const params = new URLSearchParams();
@@ -53,117 +51,120 @@ export default function PLPFilters({ filters, currentSort, currentVendor, curren
   };
 
   const activeTags = searchParams.getAll('tag');
-  const currentMin = searchParams.get('minPrice') || '';
   const currentMax = searchParams.get('maxPrice') || '';
-  const hasFilters = currentVendor || currentType || activeTags.length > 0 || currentMin || currentMax;
+  const hasFilters = currentVendor || currentType || activeTags.length > 0 || currentMax;
 
   return (
-    <aside className={`plp-filters${isPending ? ' plp-filters-loading' : ''}`}>
-      <div className="plp-filter-header">
-        <span className="plp-filter-title">Filters</span>
-        {hasFilters && (
-          <button className="plp-filter-clear" onClick={handleClear} type="button">
-            Clear all
+    <aside className={`filters plp-filters${isPending ? ' plp-filters-loading' : ''}`}>
+      {hasFilters && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <button
+            onClick={handleClear}
+            type="button"
+            style={{ background: 'none', border: 'none', color: 'var(--imperial-blue)', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+          >
+            Clear all filters
           </button>
-        )}
-      </div>
-
-      {/* Sort — also in sidebar for mobile */}
-      <div className="filter-group">
-        <h6>Sort By</h6>
-        <select value={currentSort} onChange={handleSort} className="filter-select" aria-label="Sort products">
-          <option value="">Best Match</option>
-          <option value="best-selling">Best Selling</option>
-          <option value="newest">Newest First</option>
-          <option value="price-asc">Price: Low → High</option>
-          <option value="price-desc">Price: High → Low</option>
-        </select>
-      </div>
+        </div>
+      )}
 
       {/* Vendors / Brands */}
       {filters.vendors.length > 0 && (
-        <div className="filter-group">
+        <div className="filtergroup">
           <h6>Brand</h6>
-          <div className="filter-group-opts">
-            {filters.vendors.map((vendor) => (
-              <label key={vendor} className="filter-label">
-                <input
-                  type="checkbox"
-                  checked={currentVendor === vendor}
-                  onChange={(e) => handleVendor(vendor, e.target.checked)}
-                />
-                {vendor}
-              </label>
-            ))}
+          <div className="opts">
+            {filters.vendors.map((vendor) => {
+              const isChecked = currentVendor === vendor;
+              return (
+                <label key={vendor} className="check">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => handleVendor(vendor, e.target.checked)}
+                  />
+                  <span className="box">
+                    <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>{vendor}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Product Types */}
+      {/* Product Types / Categories */}
       {filters.productTypes.length > 0 && (
-        <div className="filter-group">
+        <div className="filtergroup">
           <h6>Category</h6>
-          <div className="filter-group-opts">
-            {filters.productTypes.map((type) => (
-              <label key={type} className="filter-label">
-                <input
-                  type="checkbox"
-                  checked={currentType === type}
-                  onChange={(e) => handleType(type, e.target.checked)}
-                />
-                {type}
-              </label>
-            ))}
+          <div className="opts">
+            {filters.productTypes.map((type) => {
+              const isChecked = currentType === type;
+              return (
+                <label key={type} className="check">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => handleType(type, e.target.checked)}
+                  />
+                  <span className="box">
+                    <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>{type}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Tags */}
+      {/* Attributes / Tags */}
       {filters.tags.length > 0 && (
-        <div className="filter-group">
+        <div className="filtergroup">
           <h6>Attributes</h6>
-          <div className="filter-group-opts">
-            {filters.tags.map((tag) => (
-              <label key={tag} className="filter-label">
-                <input
-                  type="checkbox"
-                  checked={activeTags.includes(tag)}
-                  onChange={(e) => handleTag(tag, e.target.checked)}
-                />
-                {tag}
-              </label>
-            ))}
+          <div className="opts">
+            {filters.tags.slice(0, 10).map((tag) => {
+              const isChecked = activeTags.includes(tag);
+              return (
+                <label key={tag} className="check">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => handleTag(tag, e.target.checked)}
+                  />
+                  <span className="box">
+                    <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>{tag}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Price Range */}
-      <div className="filter-group">
-        <h6>Price ({filters.currency})</h6>
-        <div className="filter-group-opts">
-          <div className="filter-price-row">
-            <input
-              type="number"
-              placeholder={`${filters.minPrice}`}
-              value={currentMin}
-              onChange={handleMinPrice}
-              min={0}
-              className="filter-price-input"
-              aria-label="Minimum price"
-            />
-            <span className="filter-price-sep">–</span>
-            <input
-              type="number"
-              placeholder={`${filters.maxPrice}`}
-              value={currentMax}
-              onChange={handleMaxPrice}
-              min={0}
-              className="filter-price-input"
-              aria-label="Maximum price"
-            />
-          </div>
-          <div className="filter-price-hint">
-            Range: {filters.currency} {filters.minPrice.toLocaleString()} – {filters.maxPrice.toLocaleString()}
+      {/* Price Range Slider */}
+      <div className="filtergroup">
+        <h6>Price (AED)</h6>
+        <div className="opts rangewrap">
+          <input
+            type="range"
+            min={filters.minPrice || 0}
+            max={filters.maxPrice || 10000}
+            step={10}
+            value={currentMax || filters.maxPrice || 10000}
+            onChange={handleMaxPrice}
+            aria-label="Maximum price"
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--faint)', marginTop: '6px' }}>
+            <span>AED {filters.minPrice || 0}</span>
+            <span>AED {currentMax || `${filters.maxPrice || 10000}+`}</span>
           </div>
         </div>
       </div>
