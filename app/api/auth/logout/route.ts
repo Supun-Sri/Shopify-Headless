@@ -8,6 +8,8 @@ export async function GET(request: Request) {
   // Clear local cookies
   cookieStore.delete('customer_access_token');
   cookieStore.delete('customer_id_token');
+  cookieStore.delete('customer_logged_in');
+  cookieStore.delete('wishlist_items');
 
   const logoutUrl = process.env.SHOPIFY_LOGOUT_URL;
   const clientId = process.env.SHOPIFY_CUSTOMER_API_CLIENT_ID;

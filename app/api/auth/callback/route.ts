@@ -64,6 +64,15 @@ export async function GET(request: Request) {
       });
     }
 
+    // Set client-accessible auth indicator cookie
+    cookieStore.set('customer_logged_in', '1', {
+      httpOnly: false,
+      secure: true,
+      maxAge: data.expires_in || 3600,
+      path: '/',
+      sameSite: 'lax',
+    });
+
     // Clean up PKCE cookies
     cookieStore.delete('shopify_auth_state');
     cookieStore.delete('shopify_auth_nonce');

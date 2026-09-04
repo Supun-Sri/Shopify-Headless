@@ -22,7 +22,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
   
   const wishlistItems = useWishlistStore((s) => s.items);
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
-  const wishlisted = wishlistItems.includes(product.id);
+  const wishlisted = wishlistItems.includes(product.id) || wishlistItems.some((id) => product.id.endsWith('/' + id) || id.endsWith('/' + product.id));
 
   const addItem = useCartStore((s) => s.addItem);
   const cartId = useCartStore((s) => s.cartId);

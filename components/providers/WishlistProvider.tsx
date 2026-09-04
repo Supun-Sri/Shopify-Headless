@@ -9,7 +9,11 @@ export default function WishlistProvider({ initialItems, children }: { initialIt
 
   useEffect(() => {
     if (!initialized.current) {
-      setItems(initialItems);
+      if (initialItems && initialItems.length > 0) {
+        const localItems = useWishlistStore.getState().items;
+        const merged = Array.from(new Set([...localItems, ...initialItems]));
+        setItems(merged);
+      }
       initialized.current = true;
     }
   }, [initialItems, setItems]);

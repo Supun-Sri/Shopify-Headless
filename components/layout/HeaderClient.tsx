@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '@/lib/cart-store';
+import { useWishlistStore } from '@/lib/wishlist-store';
 import { useVatStore } from '@/lib/vat-store';
 import { useRouter, usePathname } from 'next/navigation';
 import type { ShopifyCollection } from '@/lib/types';
@@ -23,6 +24,8 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const totalQuantity = useCartStore((s) => s.totalQuantity());
   const toggleCart = useCartStore((s) => s.toggleCart);
+  const wishlistItems = useWishlistStore((s) => s.items);
+  const wishlistCount = mounted ? wishlistItems.length : 0;
   
   const isVatInclusive = useVatStore((s) => s.isVatInclusive);
   const setVatInclusive = useVatStore((s) => s.setVatInclusive);
@@ -185,11 +188,14 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             <span>Compare</span>
           </Link>
           
-          <Link href="/account/wishlist" className="icon" aria-label="Wishlist">
+          <Link href="/account/wishlist" className="icon" aria-label={`Wishlist with ${wishlistCount} items`}>
             <div className="box">
-              <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <svg className={`ic lg ${wishlistCount > 0 ? 'fill' : ''}`} viewBox="0 0 24 24" fill={wishlistCount > 0 ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.75">
                 <path d="M12 20.2C9.5 18 4.5 14.4 4.5 10.6A3.9 3.9 0 0 1 12 8.4a3.9 3.9 0 0 1 7.5 2.2c0 3.8-5 7.4-7.5 9.6Z"/>
               </svg>
+              {wishlistCount > 0 && (
+                <span className="badge pop">{wishlistCount}</span>
+              )}
             </div>
             <span>Wishlist</span>
           </Link>
