@@ -45,11 +45,13 @@ export async function GET(request: Request) {
 
     const data = await tokenResponse.json();
     
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     // data.access_token contains the Customer Account API access token
     if (data.access_token) {
       cookieStore.set('customer_access_token', data.access_token, {
         httpOnly: true,
-        secure: true,
+        secure: isProduction,
         maxAge: data.expires_in || 3600,
         path: '/',
       });
@@ -58,16 +60,40 @@ export async function GET(request: Request) {
     if (data.id_token) {
       cookieStore.set('customer_id_token', data.id_token, {
         httpOnly: true,
-        secure: true,
+        secure: isProduction,
         maxAge: data.expires_in || 3600,
         path: '/',
       });
+
+      // Restore customer persistent wishlist into session cookies
+      try {
+        const { getCustomerKey, getStoredWishlist } = await import('@/lib/wishlist-server');
+        const customerKey = getCustomerKey(data.id_token);
+        const saved = getStoredWishlist(customerKey);
+        if (saved && saved.length > 0) {
+          const serialized = JSON.stringify(saved);
+          cookieStore.set('wishlist_items', serialized, {
+            path: '/',
+            maxAge: 60 * 60 * 24 * 365,
+            sameSite: 'lax',
+            httpOnly: false,
+          });
+          cookieStore.set('customer_wishlist_' + customerKey, serialized, {
+            path: '/',
+            maxAge: 60 * 60 * 24 * 365,
+            sameSite: 'lax',
+            httpOnly: false,
+          });
+        }
+      } catch (err) {
+        console.warn('Could not restore persistent wishlist on callback:', err);
+      }
     }
 
     // Set client-accessible auth indicator cookie
     cookieStore.set('customer_logged_in', '1', {
       httpOnly: false,
-      secure: true,
+      secure: isProduction,
       maxAge: data.expires_in || 3600,
       path: '/',
       sameSite: 'lax',

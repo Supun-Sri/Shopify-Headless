@@ -115,14 +115,15 @@ export default function CompareClient() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                       <button 
-                        className="btn-primary" 
-                        style={{ flex: 1, padding: '8px', fontSize: '11px', textTransform: 'uppercase', borderRadius: '4px', background: '#1c3664' }}
+                        className="btn primary" 
+                        style={{ flex: 1, padding: '10px 14px', fontSize: '11px', textTransform: 'uppercase' }}
                         onClick={() => handleAddToCart(p)}
                       >
                         Add to Cart
                       </button>
                       <button 
-                        style={{ background: '#1c3664', color: '#fff', border: 'none', width: '34px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="btn secondary"
+                        style={{ width: '40px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         aria-label="Add to Wishlist"
                       >
                         ♡

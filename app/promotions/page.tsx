@@ -21,7 +21,7 @@ export default function PromotionsPage() {
           We are currently curating our latest promotional offers and product discounts. Please check back later to see our upcoming deals.
         </p>
         
-        <Link href="/products" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none', padding: '14px 28px', fontSize: '14px' }}>
+        <Link href="/products" className="btn primary">
           Browse All Products
         </Link>
       </div>

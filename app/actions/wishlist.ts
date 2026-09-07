@@ -2,16 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { decodeIdToken } from '@/lib/shopify-customer';
-
-function getCustomerKey(idToken?: string): string {
-  if (!idToken) return 'default';
-  const decoded = decodeIdToken(idToken);
-  if (decoded?.sub) {
-    return decoded.sub.replace(/[^a-zA-Z0-9]/g, '_');
-  }
-  return 'default';
-}
+import { getCustomerKey, getStoredWishlist, saveStoredWishlist } from '@/lib/wishlist-server';
 
 function parseWishlistCookie(cookieVal?: string): string[] {
   if (!cookieVal) return [];
@@ -42,13 +33,17 @@ export async function getWishlist(): Promise<string[]> {
     }
 
     const customerKey = getCustomerKey(idToken);
+    const serverItems = getStoredWishlist(customerKey);
     const customerCookie = `customer_wishlist_${customerKey}`;
     
     const fromCustomer = parseWishlistCookie(cookieStore.get(customerCookie)?.value);
     const fromSession = parseWishlistCookie(cookieStore.get('wishlist_items')?.value);
 
-    // Merge both sources so a newly written session cookie isn't masked by an older empty customer cookie
-    const combined = Array.from(new Set([...fromCustomer, ...fromSession]));
+    // Merge server storage with cookies so no items are ever lost across sign-in/sign-out
+    const combined = Array.from(new Set([...serverItems, ...fromCustomer, ...fromSession]));
+    if (combined.length > serverItems.length) {
+      saveStoredWishlist(customerKey, combined);
+    }
     return combined;
   } catch (err: any) {
     if (err?.digest === 'DYNAMIC_SERVER_USAGE' || err?.message?.includes('Dynamic server usage')) {
@@ -102,6 +97,7 @@ export async function toggleWishlistItem(
     }
 
     const customerKey = getCustomerKey(idToken);
+    saveStoredWishlist(customerKey, updated);
     const customerCookie = `customer_wishlist_${customerKey}`;
     const serialized = JSON.stringify(updated);
 

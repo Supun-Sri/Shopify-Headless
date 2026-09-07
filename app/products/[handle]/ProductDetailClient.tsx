@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,6 +9,7 @@ import { useCartStore } from '@/lib/cart-store';
 import { useCompareStore } from '@/lib/compare-store';
 import { addLineItemAction } from '@/app/actions/cart';
 import { usePrice } from '@/lib/use-price';
+import { getProductCoverageInfo } from '@/lib/coverage';
 
 export default function ProductDetailClient({ product }: { product: ShopifyProduct }) {
   const router = useRouter();
@@ -17,10 +18,7 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
   const [activeThumb, setActiveThumb] = useState(0);
   const [activeTab, setActiveTab] = useState<'desc' | 'docs' | 'reviews'>('desc');
   const [qty, setQty] = useState(1);
-  const [calcArea, setCalcArea] = useState('');
-  const [calcRate, setCalcRate] = useState('5');
-  const [isAdding, setIsAdding] = useState(false);
-  const [added, setAdded] = useState(false);
+  const [qtySource, setQtySource] = useState<'default' | 'calc' | 'manual'>('default');
 
   const addItem = useCartStore((s) => s.addItem);
   const cartId = useCartStore((s) => s.cartId);
@@ -42,10 +40,60 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
   const activeImage = images[activeThumb];
   const isAvailable = selectedVariant?.availableForSale;
 
-  // Coverage calc
-  const calcResult = calcArea && parseFloat(calcArea) > 0
-    ? `${calcArea} sqm ÷ ${calcRate} sqm per bag — ${Math.ceil(parseFloat(calcArea) / parseFloat(calcRate))} bags needed`
-    : 'Enter an area to calculate the bags needed';
+  // Product-specific coverage detection
+  const coverageInfo = useMemo(() => getProductCoverageInfo(product), [product]);
+  const [calcArea, setCalcArea] = useState('');
+  const [calcRate, setCalcRate] = useState(coverageInfo.defaultRate);
+  const [includeWastage, setIncludeWastage] = useState(true);
+
+  const areaNum = parseFloat(calcArea);
+  const rateNum = parseFloat(calcRate);
+  const hasValidCalc = !isNaN(areaNum) && areaNum > 0 && !isNaN(rateNum) && rateNum > 0;
+  const rawNeeded = hasValidCalc ? Math.ceil(areaNum / rateNum) : 0;
+  const finalNeeded = hasValidCalc
+    ? Math.ceil(includeWastage ? (areaNum / rateNum) * 1.1 : areaNum / rateNum)
+    : 0;
+  const unitLabel = finalNeeded === 1 ? coverageInfo.unitSingular : coverageInfo.unitPlural;
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  // Synchronize quantity automatically with area & coverage rate
+  const syncQuantity = useCallback((areaStr: string, rateStr: string, wastage: boolean) => {
+    const areaNum = parseFloat(areaStr);
+    const rateNum = parseFloat(rateStr);
+    if (!isNaN(areaNum) && areaNum > 0 && !isNaN(rateNum) && rateNum > 0) {
+      const rawUnits = areaNum / rateNum;
+      const finalUnits = wastage ? rawUnits * 1.10 : rawUnits;
+      const needed = Math.max(1, Math.ceil(finalUnits));
+      setQty(needed);
+      setQtySource('calc');
+    } else if (!areaStr || areaStr.trim() === '' || areaNum === 0) {
+      setQty(1);
+      setQtySource('default');
+    }
+  }, []);
+
+  const handleAreaChange = (val: string) => {
+    setCalcArea(val);
+    syncQuantity(val, calcRate, includeWastage);
+  };
+
+  const handleRateChange = (val: string) => {
+    setCalcRate(val);
+    syncQuantity(calcArea, val, includeWastage);
+  };
+
+  const handleWastageToggle = () => {
+    const next = !includeWastage;
+    setIncludeWastage(next);
+    syncQuantity(calcArea, calcRate, next);
+  };
+
+  const handleStepperChange = (newQty: number) => {
+    setQty(Math.max(1, newQty));
+    setQtySource('manual');
+  };
 
   const handleAddToCart = useCallback(async () => {
     if (isAdding || !isAvailable) return;
@@ -178,7 +226,15 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
 
           {/* Coverage Calculator */}
           <div className="field pdp-field">
-            <label className="pdp-field-label">Coverage Calculator</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <label className="pdp-field-label" style={{ margin: 0 }}>Coverage Calculator</label>
+              {coverageInfo.detectedKeyword && (
+                <span style={{ fontSize: '10.5px', color: 'var(--muted)', background: 'var(--slot)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+                  {coverageInfo.detectedKeyword}
+                </span>
+              )}
+            </div>
+
             <div className="calcbox calc-box">
               <div className="row calc-row">
                 <div className="cell calc-cell">
@@ -188,39 +244,115 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
                     type="number"
                     placeholder="e.g. 45"
                     value={calcArea}
-                    onChange={(e) => setCalcArea(e.target.value)}
+                    onChange={(e) => handleAreaChange(e.target.value)}
                     min="0"
+                    step="any"
                   />
                 </div>
                 <div className="cell calc-cell">
                   <label htmlFor="calc-rate">Coverage rate</label>
-                  <select id="calc-rate" value={calcRate} onChange={(e) => setCalcRate(e.target.value)}>
-                    <option value="5">~5 sqm / unit</option>
-                    <option value="4">~4 sqm / unit</option>
-                    <option value="6">~6 sqm / unit</option>
+                  <select id="calc-rate" value={calcRate} onChange={(e) => handleRateChange(e.target.value)}>
+                    {coverageInfo.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
-              <div className="result calc-result">
-                <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-                {calcResult}
+
+              {/* Wastage allowance toggle */}
+              <div className="calc-wastage-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  id="calc-wastage"
+                  checked={includeWastage}
+                  onChange={handleWastageToggle}
+                  style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: 'var(--imperial-blue)' }}
+                />
+                <label htmlFor="calc-wastage" style={{ fontSize: '11.5px', color: 'var(--text)', cursor: 'pointer', userSelect: 'none' }}>
+                  Include +10% wastage allowance (recommended for site cuts, overlaps &amp; spillage)
+                </label>
+              </div>
+
+              {/* Dynamic Result with auto-sync status */}
+              <div className="result calc-result" style={{ transition: 'all var(--motion)' }}>
+                {hasValidCalc ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: 'var(--uae-green)', flexShrink: 0 }}>
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span style={{ color: 'var(--navy)', fontWeight: 600 }}>
+                          <strong>{finalNeeded} {unitLabel}</strong> required for {calcArea} sqm
+                        </span>
+                      </div>
+                      <span className="calc-auto-badge">
+                        ✓ Quantity updated to {finalNeeded}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', paddingLeft: '22px' }}>
+                      {calcArea} sqm ÷ {calcRate} sqm per {coverageInfo.unitSingular}
+                      {includeWastage && (
+                        <span> + 10% wastage ({Math.max(0, finalNeeded - rawNeeded)} extra {finalNeeded - rawNeeded === 1 ? coverageInfo.unitSingular : coverageInfo.unitPlural})</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', width: '100%' }}>
+                    <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                    <span>Enter an area to automatically calculate and set the {coverageInfo.unitPlural} required</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Quantity */}
           <div className="field pdp-field">
-            <label className="pdp-field-label">Quantity</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+              <label className="pdp-field-label" style={{ margin: 0 }}>Quantity</label>
+              {qtySource === 'calc' && hasValidCalc && (
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--imperial-blue)',
+                  background: 'rgba(9, 79, 168, 0.08)',
+                  border: '1px solid rgba(9, 79, 168, 0.18)',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  ✓ Auto-set for {calcArea} sqm ({calcRate} sqm/{coverageInfo.unitSingular})
+                </span>
+              )}
+              {qtySource === 'manual' && hasValidCalc && (
+                <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                  (Manually adjusted: {qty} {qty === 1 ? coverageInfo.unitSingular : coverageInfo.unitPlural})
+                </span>
+              )}
+            </div>
+
             <div className="stepper">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Decrease quantity">
+              <button onClick={() => handleStepperChange(qty - 1)} aria-label="Decrease quantity">
                 <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
               </button>
-              <input value={qty} readOnly aria-label="Quantity" />
-              <button onClick={() => setQty(qty + 1)} aria-label="Increase quantity">
+              <input
+                value={qty}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (!isNaN(val)) handleStepperChange(val);
+                }}
+                aria-label="Quantity"
+              />
+              <button onClick={() => handleStepperChange(qty + 1)} aria-label="Increase quantity">
                 <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />

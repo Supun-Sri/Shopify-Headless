@@ -11,7 +11,7 @@ export default function Footer() {
           <div className="eyebrow on-dark">Imperial Middle East</div>
           <h2>Built for the projects<br />shaping tomorrow.</h2>
         </div>
-        <Link href="/rfq" className="btn-primary" style={{ textDecoration: 'none' }}>
+        <Link href="/rfq" className="btn primary" style={{ textDecoration: 'none' }}>
           Request a project quote
           <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: '4px' }}>
             <path d="M5 12h14M12 5l7 7-7 7" />
