@@ -425,6 +425,9 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
         <Link href="/promotions" className="megaitem megaitem-link" style={{ color: 'var(--signal-red)', fontWeight: 700 }}>
           % Promotions
         </Link>
+        <Link href="/coverage-calculator" className="megaitem megaitem-link">
+          Coverage Calculator
+        </Link>
         <Link href="/bulk-inquiries" className="megaitem megaitem-link highlight">
           Bulk Inquiries
         </Link>
@@ -438,6 +441,9 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
         <nav className="mobile-nav" aria-label="Mobile navigation">
           <Link href="/products" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
             All Products
+          </Link>
+          <Link href="/coverage-calculator" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+            Coverage Calculator
           </Link>
           <Link href="/promotions" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--signal-red)', fontWeight: 700 }}>
             % Promotions

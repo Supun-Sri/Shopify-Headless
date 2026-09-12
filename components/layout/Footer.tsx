@@ -42,6 +42,7 @@ export default function Footer() {
         {/* Support */}
         <div className="col imp-footer-col">
           <h6>Support</h6>
+          <Link href="/coverage-calculator">Coverage Calculator</Link>
           <Link href="/rfq">Send Inquiry</Link>
           <Link href="/products">Product Specialists</Link>
           <div>Documents &amp; Downloads</div>
