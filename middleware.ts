@@ -8,10 +8,16 @@ import type { NextRequest } from 'next/server';
  * refresh endpoint to obtain a new token transparently.
  */
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
 
   // Only protect account routes
   if (!pathname.startsWith('/account')) {
+    return NextResponse.next();
+  }
+
+  // If there's an error query param, let the page render the error UI
+  // (don't redirect to login — that would cause a redirect loop)
+  if (searchParams.has('error')) {
     return NextResponse.next();
   }
 

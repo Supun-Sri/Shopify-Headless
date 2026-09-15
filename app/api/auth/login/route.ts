@@ -19,6 +19,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Shopify Customer API credentials not configured.' }, { status: 500 });
   }
 
+  const url = new URL(request.url);
+  // Use a stable site URL for the redirect URI to avoid Netlify deploy preview mismatches.
+  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+
+  // If the user is on a deploy preview (different domain), redirect them to the
+  // stable domain's login route first. This ensures auth cookies are set on the
+  // same domain that will receive the OAuth callback.
+  if (siteOrigin && url.origin !== siteOrigin) {
+    return NextResponse.redirect(`${siteOrigin}/api/auth/login`);
+  }
+
   // 1. Generate state and nonce
   const state = generateRandomString(32);
   const nonce = generateRandomString(32);
@@ -28,14 +39,10 @@ export async function GET(request: Request) {
   const codeChallenge = generateCodeChallenge(codeVerifier);
   
   const cookieStore = await cookies();
-  cookieStore.set('shopify_auth_state', state, { httpOnly: true, secure: true, maxAge: 60 * 10 });
-  cookieStore.set('shopify_auth_nonce', nonce, { httpOnly: true, secure: true, maxAge: 60 * 10 });
-  cookieStore.set('shopify_auth_code_verifier', codeVerifier, { httpOnly: true, secure: true, maxAge: 60 * 10 });
+  cookieStore.set('shopify_auth_state', state, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
+  cookieStore.set('shopify_auth_nonce', nonce, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
+  cookieStore.set('shopify_auth_code_verifier', codeVerifier, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
 
-  const url = new URL(request.url);
-  // Use a stable site URL for the redirect URI to avoid Netlify deploy preview mismatches.
-  // Falls back to the request origin for local dev.
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
   const redirectUri = `${siteOrigin}/api/auth/callback`;
 
   // Shopify Customer Account Authorization Endpoint
