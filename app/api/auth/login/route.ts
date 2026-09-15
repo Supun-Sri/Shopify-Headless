@@ -33,7 +33,10 @@ export async function GET(request: Request) {
   cookieStore.set('shopify_auth_code_verifier', codeVerifier, { httpOnly: true, secure: true, maxAge: 60 * 10 });
 
   const url = new URL(request.url);
-  const redirectUri = `${url.origin}/api/auth/callback`;
+  // Use a stable site URL for the redirect URI to avoid Netlify deploy preview mismatches.
+  // Falls back to the request origin for local dev.
+  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+  const redirectUri = `${siteOrigin}/api/auth/callback`;
 
   // Shopify Customer Account Authorization Endpoint
   const authorizationUrl = new URL(authUrl);

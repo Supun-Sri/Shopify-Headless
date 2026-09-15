@@ -22,7 +22,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const redirectUri = `${url.origin}/api/auth/callback`;
+    // Must match the redirect_uri used in the login route exactly
+    const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+    const redirectUri = `${siteOrigin}/api/auth/callback`;
 
     // Exchange code for token
     const tokenResponse = await fetch(tokenUrl!, {

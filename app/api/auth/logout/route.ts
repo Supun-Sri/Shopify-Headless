@@ -65,7 +65,8 @@ export async function GET(request: Request) {
     if (idToken) {
       shopifyLogout.searchParams.append('id_token_hint', idToken);
     }
-    shopifyLogout.searchParams.append('post_logout_redirect_uri', url.origin);
+    const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+    shopifyLogout.searchParams.append('post_logout_redirect_uri', siteOrigin);
     if (clientId) {
         shopifyLogout.searchParams.append('client_id', clientId);
     }
