@@ -47,6 +47,17 @@ interface CartState {
   syncFromApi: (lines: CartLineItem[], cartId: string, checkoutUrl: string) => void;
 }
 
+// ─── Cookie Helpers ──────────────────────────────────────────────────────────
+
+function syncCartIdCookie(cartId: string | null) {
+  if (typeof document === 'undefined') return;
+  if (cartId) {
+    document.cookie = `cart_id=${encodeURIComponent(cartId)}; path=/; max-age=2592000; SameSite=Lax`;
+  } else {
+    document.cookie = 'cart_id=; path=/; max-age=0; SameSite=Lax';
+  }
+}
+
 // ─── Store ───────────────────────────────────────────────────────────────────
 
 export const useCartStore = create<CartState>()(
@@ -77,7 +88,10 @@ export const useCartStore = create<CartState>()(
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 
       // Cart identity
-      setCartId: (id) => set({ cartId: id }),
+      setCartId: (id) => {
+        set({ cartId: id });
+        syncCartIdCookie(id);
+      },
       setCheckoutUrl: (url) => set({ checkoutUrl: url }),
       setError: (error) => set({ error }),
       setLoading: (loading) => set({ isLoading: loading }),
@@ -135,16 +149,18 @@ export const useCartStore = create<CartState>()(
           };
         }),
 
-      clearCart: () =>
+      clearCart: () => {
         set({
           items: [],
           cartId: null,
           checkoutUrl: null,
           error: null,
-        }),
+        });
+        syncCartIdCookie(null);
+      },
 
       // Sync with API response
-      syncFromApi: (lines, cartId, checkoutUrl) =>
+      syncFromApi: (lines, cartId, checkoutUrl) => {
         set({
           cartId,
           checkoutUrl,
@@ -159,7 +175,9 @@ export const useCartStore = create<CartState>()(
             handle: line.merchandise.product.handle,
           })),
           error: null,
-        }),
+        });
+        syncCartIdCookie(cartId);
+      },
     }),
     {
       name: 'imperial-cart',
@@ -179,6 +197,12 @@ export const useCartStore = create<CartState>()(
         checkoutUrl: state.checkoutUrl,
         items: state.items,
       }),
+      // After rehydration from localStorage, sync the cookie
+      onRehydrateStorage: () => (state) => {
+        if (state?.cartId) {
+          syncCartIdCookie(state.cartId);
+        }
+      },
     }
   )
 );

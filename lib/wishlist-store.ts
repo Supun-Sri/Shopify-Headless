@@ -7,8 +7,10 @@ import { toggleWishlistItem as toggleServer } from '@/app/actions/wishlist';
 interface WishlistState {
   items: string[];
   isLoggedIn: boolean;
+  _serverSynced: boolean;
   setLoggedIn: (loggedIn: boolean) => void;
   setItems: (items: string[]) => void;
+  setServerSynced: (synced: boolean) => void;
   toggleItem: (productId: string) => Promise<boolean>;
   removeItem: (productId: string) => Promise<void>;
   hasItem: (productId: string) => boolean;
@@ -25,19 +27,24 @@ function syncCookie(items: string[]) {
   }
 }
 
+function matchesId(a: string, b: string): boolean {
+  return a === b || a.endsWith('/' + b) || b.endsWith('/' + a);
+}
+
 export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
       items: [],
       isLoggedIn: false,
+      _serverSynced: false,
       setLoggedIn: (isLoggedIn) => set({ isLoggedIn }),
+      setServerSynced: (synced) => set({ _serverSynced: synced }),
       setItems: (items) => {
         set({ items });
         syncCookie(items);
       },
       hasItem: (productId: string) =>
-        get().items.includes(productId) ||
-        get().items.some((id) => productId.endsWith('/' + id) || id.endsWith('/' + productId)),
+        get().items.some((id) => matchesId(id, productId)),
       toggleItem: async (productId: string) => {
         const loggedIn = get().isLoggedIn || isCustomerLoggedIn();
         // Strictly require login for wishlist
@@ -47,17 +54,13 @@ export const useWishlistStore = create<WishlistState>()(
         }
 
         const current = get().items;
-        const isCurrentlyAdded =
-          current.includes(productId) ||
-          current.some((id) => productId.endsWith('/' + id) || id.endsWith('/' + productId));
+        const isCurrentlyAdded = current.some((id) => matchesId(id, productId));
         const nextAction: 'add' | 'remove' = isCurrentlyAdded ? 'remove' : 'add';
 
         const updated =
           nextAction === 'add'
             ? Array.from(new Set([...current, productId]))
-            : current.filter(
-                (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
-              );
+            : current.filter((id) => !matchesId(id, productId));
 
         // Immediate optimistic update
         set({ items: updated });
@@ -66,11 +69,12 @@ export const useWishlistStore = create<WishlistState>()(
         try {
           const res = await toggleServer(productId, nextAction, updated);
           if (res && res.error === 'UNAUTHENTICATED') {
-            set({ items: [], isLoggedIn: false });
+            set({ items: [], isLoggedIn: false, _serverSynced: false });
             window.location.href = '/api/auth/login';
             return false;
           }
           if (res && res.success && Array.isArray(res.items)) {
+            // Server confirmed — use server's authoritative list
             set({ items: res.items });
             syncCookie(res.items);
           }
@@ -87,13 +91,15 @@ export const useWishlistStore = create<WishlistState>()(
           return;
         }
         const current = get().items;
-        const updated = current.filter(
-          (id) => id !== productId && !productId.endsWith('/' + id) && !id.endsWith('/' + productId)
-        );
+        const updated = current.filter((id) => !matchesId(id, productId));
         set({ items: updated });
         syncCookie(updated);
         try {
-          await toggleServer(productId, 'remove', updated);
+          const res = await toggleServer(productId, 'remove', updated);
+          if (res && res.success && Array.isArray(res.items)) {
+            set({ items: res.items });
+            syncCookie(res.items);
+          }
         } catch {
           // Keep local state
         }
@@ -102,7 +108,10 @@ export const useWishlistStore = create<WishlistState>()(
     {
       name: 'imperial_customer_wishlist',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        items: state.items,
+        // Don't persist isLoggedIn or _serverSynced — those are session-specific
+      }),
     }
   )
 );
-

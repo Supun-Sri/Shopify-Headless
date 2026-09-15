@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCustomerAccountData } from '@/lib/shopify-customer';
@@ -9,8 +8,56 @@ import WishlistGrid, { WishlistCountBadge } from '@/components/account/WishlistG
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function AccountPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  token_failed: 'Authentication failed. Please try signing in again.',
+  server_error: 'An unexpected error occurred during sign-in. Please try again.',
+  invalid_state: 'Your sign-in session expired. Please try again.',
+  no_code: 'Authorization was not completed. Please try signing in again.',
+  auth_failed: 'We could not verify your identity. Please try again.',
+};
+
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
   const { isLoggedIn, customer } = await getCustomerAccountData();
+
+  // If there's an auth error, show the error page instead of redirecting to login
+  // (which would cause a redirect loop)
+  if ((!isLoggedIn || !customer) && params.error) {
+    return (
+      <div className="store-frame" style={{ padding: '40px 28px 64px', minHeight: '70vh' }}>
+        <div className="breadcrumb" style={{ padding: '0 0 20px' }}>
+          <Link href="/">Home</Link> / <span>Account</span>
+        </div>
+        <div style={{
+          maxWidth: '480px',
+          margin: '60px auto',
+          textAlign: 'center',
+          background: '#fff',
+          borderRadius: 'var(--r-card)',
+          boxShadow: 'var(--sh-soft)',
+          padding: '40px 32px',
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <h1 style={{ fontSize: '20px', color: 'var(--navy)', margin: '0 0 12px' }}>
+            Sign-In Issue
+          </h1>
+          <p style={{ color: 'var(--muted)', fontSize: '14px', lineHeight: 1.6, margin: '0 0 24px' }}>
+            {ERROR_MESSAGES[params.error] || 'An unknown error occurred. Please try again.'}
+          </p>
+          <a href="/api/auth/login" className="btn primary" style={{ marginRight: '12px' }}>
+            Try Again
+          </a>
+          <Link href="/" className="btn secondary">
+            Go Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn || !customer) {
     redirect('/api/auth/login');

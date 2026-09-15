@@ -14,11 +14,11 @@ export async function GET(request: Request) {
   const tokenUrl = process.env.SHOPIFY_TOKEN_URL;
 
   if (!state || state !== savedState) {
-    return NextResponse.json({ error: 'Invalid state parameter' }, { status: 400 });
+    return NextResponse.redirect(new URL('/account?error=invalid_state', url.origin));
   }
 
   if (!code) {
-    return NextResponse.json({ error: 'Authorization code missing' }, { status: 400 });
+    return NextResponse.redirect(new URL('/account?error=no_code', url.origin));
   }
 
   try {
@@ -40,28 +40,30 @@ export async function GET(request: Request) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json();
       console.error('Token exchange failed:', errorData);
-      return NextResponse.redirect(new URL('/login?error=token_failed', url.origin));
+      return NextResponse.redirect(new URL('/account?error=token_failed', url.origin));
     }
 
     const data = await tokenResponse.json();
     
     const isProduction = process.env.NODE_ENV === 'production';
+    const tokenExpiry = data.expires_in || 3600;
     
-    // data.access_token contains the Customer Account API access token
+    // Store access_token
     if (data.access_token) {
       cookieStore.set('customer_access_token', data.access_token, {
         httpOnly: true,
         secure: isProduction,
-        maxAge: data.expires_in || 3600,
+        maxAge: tokenExpiry,
         path: '/',
       });
     }
     
+    // Store id_token
     if (data.id_token) {
       cookieStore.set('customer_id_token', data.id_token, {
         httpOnly: true,
         secure: isProduction,
-        maxAge: data.expires_in || 3600,
+        maxAge: tokenExpiry,
         path: '/',
       });
 
@@ -90,14 +92,36 @@ export async function GET(request: Request) {
       }
     }
 
+    // Store refresh_token if provided by Shopify (for session renewal)
+    if (data.refresh_token) {
+      cookieStore.set('customer_refresh_token', data.refresh_token, {
+        httpOnly: true,
+        secure: isProduction,
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: '/',
+        sameSite: 'lax',
+      });
+    }
+
     // Set client-accessible auth indicator cookie
     cookieStore.set('customer_logged_in', '1', {
       httpOnly: false,
       secure: isProduction,
-      maxAge: data.expires_in || 3600,
+      maxAge: tokenExpiry,
       path: '/',
       sameSite: 'lax',
     });
+
+    // Associate existing Shopify cart with the authenticated customer
+    try {
+      const cartIdCookie = cookieStore.get('cart_id')?.value;
+      if (cartIdCookie && data.access_token) {
+        const { updateCartBuyerIdentity } = await import('@/lib/shopify-api');
+        await updateCartBuyerIdentity(cartIdCookie, data.access_token);
+      }
+    } catch (err) {
+      console.warn('Could not associate cart with customer:', err);
+    }
 
     // Clean up PKCE cookies
     cookieStore.delete('shopify_auth_state');
@@ -107,6 +131,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/account', url.origin));
   } catch (error) {
     console.error('Callback error:', error);
-    return NextResponse.redirect(new URL('/login?error=server_error', url.origin));
+    return NextResponse.redirect(new URL('/account?error=server_error', url.origin));
   }
 }

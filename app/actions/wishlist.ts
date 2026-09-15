@@ -1,7 +1,6 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
 import { getCustomerKey, getStoredWishlist, saveStoredWishlist } from '@/lib/wishlist-server';
 
 function parseWishlistCookie(cookieVal?: string): string[] {
@@ -117,11 +116,10 @@ export async function toggleWishlistItem(
       httpOnly: false,
     });
 
-    // Revalidate Next.js cache so any prefetched or cached customer pages update immediately
-    try {
-      revalidatePath('/account/wishlist');
-      revalidatePath('/account');
-    } catch {}
+    // NOTE: We intentionally do NOT call revalidatePath() here.
+    // The client-side Zustand store is the source of truth for the UI.
+    // Calling revalidatePath() triggers a layout re-render which races with
+    // the optimistic state update and causes the toggle to revert.
 
     return { success: true, items: updated };
   } catch (err: any) {

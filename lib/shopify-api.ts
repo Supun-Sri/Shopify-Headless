@@ -10,6 +10,8 @@ import {
   ADD_TO_CART_MUTATION,
   UPDATE_CART_LINE_MUTATION,
   REMOVE_FROM_CART_MUTATION,
+  GET_CART_QUERY,
+  CART_BUYER_IDENTITY_UPDATE_MUTATION,
 } from './queries';
 import type {
   ShopifyProduct,
@@ -322,4 +324,46 @@ export async function removeFromCart(
   }
 
   return normalizeCart(data.cartLinesRemove.cart);
+}
+
+export async function getCart(cartId: string): Promise<Cart | null> {
+  try {
+    const data = await shopifyFetch<{
+      cart: Record<string, unknown> | null;
+    }>({
+      query: GET_CART_QUERY,
+      variables: { cartId },
+      cache: 'no-store',
+    });
+
+    if (!data.cart) return null;
+    return normalizeCart(data.cart);
+  } catch {
+    return null;
+  }
+}
+
+export async function updateCartBuyerIdentity(
+  cartId: string,
+  customerAccessToken: string
+): Promise<Cart> {
+  const data = await shopifyFetch<{
+    cartBuyerIdentityUpdate: {
+      cart: Record<string, unknown> | null;
+      userErrors: { message: string }[];
+    };
+  }>({
+    query: CART_BUYER_IDENTITY_UPDATE_MUTATION,
+    variables: {
+      cartId,
+      buyerIdentity: { customerAccessToken },
+    },
+    cache: 'no-store',
+  });
+
+  if (data.cartBuyerIdentityUpdate.userErrors?.length) {
+    throw new Error(data.cartBuyerIdentityUpdate.userErrors[0].message);
+  }
+
+  return normalizeCart(data.cartBuyerIdentityUpdate.cart);
 }

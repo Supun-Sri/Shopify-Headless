@@ -375,3 +375,28 @@ export const REMOVE_FROM_CART_MUTATION = `
   }
   ${CART_FRAGMENT}
 `;
+
+export const GET_CART_QUERY = `
+  query GetCart($cartId: ID!) {
+    cart(id: $cartId) {
+      ...CartFields
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
+export const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
+  mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
