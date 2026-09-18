@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import BrandWheel from './BrandWheel';
 
 const HERO_SLIDES = [
@@ -43,8 +44,25 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="hero">
-      <div className="hero-grid">
+    <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Immersive Background Image */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Image 
+          src="/Gemini_Generated_Image_s18lxes18lxes18l.jpg" 
+          alt="Imperial Construction Projects" 
+          fill
+          priority
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
+        />
+        {/* Soft gradient mask: Solid light on the left for text readability, fading to transparent on the right to show the image */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(90deg, rgba(248, 250, 252, 0.98) 0%, rgba(248, 250, 252, 0.85) 45%, rgba(248, 250, 252, 0.1) 100%)' 
+        }} />
+      </div>
+
+      <div className="hero-grid" style={{ position: 'relative', zIndex: 10 }}>
         {/* Left rail marker */}
         <div className="hero-rail" aria-hidden="true">
           <svg className="mark ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
