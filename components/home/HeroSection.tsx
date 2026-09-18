@@ -101,7 +101,6 @@ export default function HeroSection() {
 
         {/* Stage with dynamic rotating brand wheel */}
         <div className="hero-stage">
-          <div className="hero-arch" aria-hidden="true" />
           <BrandWheel />
           <p className="hero-note" style={{ position: 'relative', zIndex: 20 }}>{slide.note}</p>
         </div>
