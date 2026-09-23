@@ -4,20 +4,20 @@ import React, { useEffect, useRef } from 'react';
 
 import Image from 'next/image';
 
-// Brand data styled to match the minimalist, bold aesthetic of the uploaded reference
+// Real partner logos from public directory
 const BRANDS = [
-  { id: 'sika', bg: '#E2001A', color: '#FFD100', text: 'SIKA' },
-  { id: 'fosroc', bg: '#00529C', color: '#FFC72C', text: 'FOS' },
-  { id: 'mapei', bg: '#006DB7', color: '#fff', text: 'MAPEI' },
-  { id: 'jotun', bg: '#002B49', color: '#fff', text: 'J' }, 
-  { id: 'hilti', bg: '#D8232A', color: '#fff', text: 'HILTI' },
-  { id: 'master', bg: '#002855', color: '#FF6B00', text: 'MB' },
-  { id: 'henkel', bg: '#E10A0A', color: '#fff', text: 'POLY' },
-  { id: 'bostik', bg: '#00A859', color: '#fff', text: 'BOS' },
-  { id: 'weber', bg: '#21409A', color: '#fff', text: 'web' },
-  { id: 'dowsil', bg: '#002C6C', color: '#00A3E0', text: 'DOW' },
-  { id: 'basf', bg: '#004A96', color: '#fff', text: 'BASF' },
-  { id: 'gcp', bg: '#1D828C', color: '#fff', text: 'GCP' }
+  { id: 'sika', src: '/PARTNER LOGO_S/Sika_NoClaim_pos_rgb_30.png' },
+  { id: 'mapei', src: '/PARTNER LOGO_S/mapei-og-5.jpg' },
+  { id: 'weber', src: '/PARTNER LOGO_S/Weber_Logo_RGB.jpg' },
+  { id: 'fila', src: '/PARTNER LOGO_S/logo-fila.jpg' },
+  { id: 'promaster', src: '/PARTNER LOGO_S/Promaster New Logo.png' },
+  { id: 'img2', src: '/PARTNER LOGO_S/images-2.png' },
+  { id: 'img3', src: '/PARTNER LOGO_S/images-3.png' },
+  { id: 'img4', src: '/PARTNER LOGO_S/images-4.png' },
+  { id: 'img5', src: '/PARTNER LOGO_S/images-5.jpeg' },
+  { id: 'img6', src: '/PARTNER LOGO_S/images-6.jpeg' },
+  { id: 'ime', src: '/PARTNER LOGO_S/IME LOGO - WHITE BACKGROUND.png' },
+  { id: 'uae', src: '/PARTNER LOGO_S/uae-placeholder.webp' }
 ];
 
 export default function BrandWheel() {
@@ -89,8 +89,8 @@ export default function BrandWheel() {
         el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${scale})`;
         el.style.zIndex = zIndex.toString();
         el.style.opacity = opacity.toString();
-        // Dynamic shadow to physically elevate the highlighted item
-        el.style.boxShadow = `0 ${12 + scaleCurve * 18}px ${25 + scaleCurve * 25}px rgba(0,0,0,${0.1 + scaleCurve * 0.15})`;
+        // Dynamic shadow to physically elevate the highlighted item and heavily separate it from others
+        el.style.boxShadow = `0 ${10 + scaleCurve * 15}px ${20 + scaleCurve * 35}px rgba(0,0,0,${0.15 + scaleCurve * 0.2}), 0 ${4 + scaleCurve * 6}px ${12 + scaleCurve * 10}px rgba(0,0,0,${0.08 + scaleCurve * 0.08})`;
       });
 
       rafId = requestAnimationFrame(loop);
@@ -205,14 +205,13 @@ export default function BrandWheel() {
           border-radius: 18px;
           display: grid;
           place-items: center;
-          font-family: var(--font-display, inherit);
-          font-weight: 900;
-          font-size: 22px;
-          letter-spacing: -0.02em;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.15); /* Stronger border for clearer separation */
+          box-shadow: 0 6px 20px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08); /* Darker, more layered base shadow */
           transform-origin: center;
           user-select: none;
           will-change: transform, opacity;
+          overflow: hidden;
         }
       `}</style>
 
@@ -241,12 +240,14 @@ export default function BrandWheel() {
               itemsRef.current[i] = el;
             }}
             className="dial-item"
-            style={{
-              background: brand.bg,
-              color: brand.color,
-            }}
           >
-            {brand.text}
+            <Image
+              src={brand.src}
+              alt={`${brand.id} logo`}
+              fill
+              sizes="90px"
+              style={{ objectFit: 'contain', padding: '12px' }}
+            />
           </div>
         ))}
       </div>
