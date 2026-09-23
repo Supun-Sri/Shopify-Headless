@@ -238,9 +238,14 @@ export default function CartDrawer() {
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </button>
-            <button onClick={closeCart} className="btn secondary block">
-              Continue Shopping
-            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <Link href="/compare" onClick={closeCart} className="btn secondary block" style={{ textAlign: 'center' }}>
+                Compare Items
+              </Link>
+              <button onClick={closeCart} className="btn secondary block">
+                Continue Shopping
+              </button>
+            </div>
           </div>
         )}
       </div>

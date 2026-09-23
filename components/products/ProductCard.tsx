@@ -158,7 +158,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
           <small> / unit</small>
         </div>
         <button
-          className={`qadd prod-card-add ${added ? 'added' : ''}`}
+          className={`qadd prod-card-add ${added ? 'added' : ''} ${!isAvailable ? 'out-of-stock' : ''}`}
           onClick={handleAddToCart}
           disabled={!isAvailable || isAdding}
           aria-label={`Add ${product.title} to cart`}

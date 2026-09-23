@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { getAllProducts, getCollections } from '@/lib/shopify-api';
 import ProductCard from '@/components/products/ProductCard';
 import HeroSection from '@/components/home/HeroSection';
+import FaqSection from '@/components/home/FaqSection';
+import FeaturedTabs from '@/components/home/FeaturedTabs';
 import type { Metadata } from 'next';
 
 export const revalidate = 60;
@@ -83,6 +85,19 @@ export default async function HomePage() {
       {/* Hero Section */}
       <HeroSection />
 
+      {/* Imperial Rewards Banner */}
+      <div className="section" style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--imperial-blue) 100%)', color: '#fff', padding: '56px 28px', borderRadius: 'var(--r-card)', margin: '48px 28px', boxShadow: 'var(--sh-lift)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <h2 style={{ color: '#fff', borderBottom: 'none', padding: 0, marginBottom: '16px', fontSize: 'clamp(28px, 4vw, 36px)' }}>Imperial Rewards</h2>
+          <p style={{ fontSize: '16px', lineHeight: '1.6', color: 'rgba(255,255,255,0.9)', maxWidth: '600px', marginBottom: '32px' }}>
+            Join our exclusive royalty program today! Earn points on every purchase, unlock professional tiers, and get a <strong style={{ color: '#FFD100' }}>10% discount on your first order</strong>.
+          </p>
+          <Link href="/account/register" className="btn primary" style={{ background: '#fff', color: 'var(--navy)', border: 'none', fontSize: '16px', padding: '14px 28px' }}>
+            Sign Up Now — Get 10% Off
+          </Link>
+        </div>
+      </div>
+
       {/* Shop by Category */}
       <div className="section">
         <div className="sectionhead">
@@ -109,42 +124,8 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Featured Products */}
-      <div className="section">
-        <div className="sectionhead">
-          <div>
-            <div className="kicker">Curated</div>
-            <h3>Featured Products</h3>
-          </div>
-          <Link href="/products" className="viewall">
-            <span className="dot">
-              <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </span>
-            View all
-          </Link>
-        </div>
-
-        {products.length > 0 ? (
-          <div className="prodgrid">
-            {products.slice(0, 8).map((product, i) => (
-              <ProductCard key={product.id} product={product} priority={i < 4} />
-            ))}
-          </div>
-        ) : (
-          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)' }}>
-            <p>Connect your Shopify store to display featured products.</p>
-            <Link
-              href="/products"
-              className="btn primary"
-              style={{ display: 'inline-block', marginTop: '20px' }}
-            >
-              Browse All Products
-            </Link>
-          </div>
-        )}
-      </div>
+      {/* Featured Products Tabs */}
+      <FeaturedTabs products={products} />
 
       {/* Reviews with Photos */}
       <div className="section">
@@ -193,6 +174,9 @@ export default async function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* FAQ Section */}
+      <FaqSection />
     </>
   );
 }

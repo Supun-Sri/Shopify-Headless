@@ -1,549 +1,255 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import * as THREE from 'three';
 
+import Image from 'next/image';
+
+// Brand data styled to match the minimalist, bold aesthetic of the uploaded reference
 const BRANDS = [
-  {
-      id: 'sika',
-      name: 'SIKA',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.save();
-          ctx.translate(w / 2 - 90, h / 2);
-          ctx.fillStyle = '#E2001A';
-          ctx.beginPath();
-          ctx.moveTo(0, -45);
-          ctx.lineTo(40, 45);
-          ctx.lineTo(-40, 45);
-          ctx.closePath();
-          ctx.fill();
-
-          ctx.fillStyle = '#FFD100';
-          ctx.beginPath();
-          ctx.moveTo(0, -18);
-          ctx.lineTo(18, 22);
-          ctx.lineTo(-18, 22);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-
-          ctx.fillStyle = '#E2001A';
-          ctx.font = '900 64px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('SIKA', w / 2 - 30, h / 2 + 2);
-      }
-  },
-  {
-      id: 'fosroc',
-      name: 'FOSROC',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.save();
-          ctx.translate(w / 2 - 130, h / 2 - 25);
-          ctx.fillStyle = '#00529C';
-          ctx.fillRect(0, 0, 50, 50);
-          ctx.fillStyle = '#FFC72C';
-          ctx.beginPath();
-          ctx.moveTo(50, 0);
-          ctx.lineTo(75, 25);
-          ctx.lineTo(50, 50);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-
-          ctx.fillStyle = '#00529C';
-          ctx.font = '900 60px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('FOSROC', w / 2 - 35, h / 2);
-      }
-  },
-  {
-      id: 'mapei',
-      name: 'MAPEI',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#006DB7';
-          ctx.roundRect(w / 2 - 140, h / 2 - 40, 280, 80, 16);
-          ctx.fill();
-
-          ctx.fillStyle = '#009246';
-          ctx.fillRect(w / 2 - 140, h / 2 + 30, 93, 10);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(w / 2 - 47, h / 2 + 30, 94, 10);
-          ctx.fillStyle = '#CE2B37';
-          ctx.fillRect(w / 2 + 47, h / 2 + 30, 93, 10);
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 56px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('MAPEI', w / 2, h / 2 - 4);
-      }
-  },
-  {
-      id: 'jotun',
-      name: 'JOTUN',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.save();
-          ctx.fillStyle = '#D31145';
-          ctx.beginPath();
-          ctx.arc(w / 2 - 110, h / 2, 36, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 32px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('J', w / 2 - 110, h / 2);
-          ctx.restore();
-
-          ctx.fillStyle = '#002B49';
-          ctx.font = '900 60px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('JOTUN', w / 2 - 55, h / 2);
-      }
-  },
-  {
-      id: 'hilti',
-      name: 'HILTI',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#D8232A';
-          ctx.roundRect(w / 2 - 130, h / 2 - 42, 260, 84, 12);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 64px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('HILTI', w / 2, h / 2);
-      }
-  },
-  {
-      id: 'masterbuilders',
-      name: 'MASTER BUILDERS',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.save();
-          ctx.fillStyle = '#FF6B00';
-          ctx.beginPath();
-          ctx.arc(w / 2 - 120, h / 2, 32, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-
-          ctx.fillStyle = '#002855';
-          ctx.font = '900 36px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('MASTER', w / 2 - 75, h / 2 - 16);
-          ctx.fillStyle = '#FF6B00';
-          ctx.font = '800 26px Outfit, system-ui, sans-serif';
-          ctx.fillText('BUILDERS', w / 2 - 75, h / 2 + 18);
-      }
-  },
-  {
-      id: 'henkel',
-      name: 'HENKEL POLYBIT',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#E10A0A';
-          ctx.beginPath();
-          ctx.ellipse(w / 2 - 100, h / 2, 40, 28, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = 'bold 20px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('Henkel', w / 2 - 100, h / 2);
-
-          ctx.fillStyle = '#0F172A';
-          ctx.font = '900 44px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.fillText('POLYBIT', w / 2 - 45, h / 2);
-      }
-  },
-  {
-      id: 'bostik',
-      name: 'BOSTIK',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#00A859';
-          ctx.roundRect(w / 2 - 130, h / 2 - 40, 260, 80, 16);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 58px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('BOSTIK', w / 2, h / 2);
-      }
-  },
-  {
-      id: 'weber',
-      name: 'WEBER',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#21409A';
-          ctx.font = '900 64px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('weber', w / 2, h / 2 - 10);
-
-          ctx.fillStyle = '#E4002B';
-          ctx.fillRect(w / 2 - 80, h / 2 + 28, 160, 8);
-      }
-  },
-  {
-      id: 'dowsil',
-      name: 'DOWSIL',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#002C6C';
-          ctx.font = '900 58px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('DOWSIL', w / 2, h / 2);
-
-          ctx.fillStyle = '#00A3E0';
-          ctx.beginPath();
-          ctx.arc(w / 2 + 138, h / 2 - 16, 8, 0, Math.PI * 2);
-          ctx.fill();
-      }
-  },
-  {
-      id: 'basf',
-      name: 'BASF',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#004A96';
-          ctx.fillRect(w / 2 - 120, h / 2 - 35, 70, 70);
-          ctx.fillStyle = '#2196F3';
-          ctx.fillRect(w / 2 - 95, h / 2 - 15, 70, 70);
-
-          ctx.fillStyle = '#004A96';
-          ctx.font = '900 64px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('BASF', w / 2, h / 2 + 10);
-      }
-  },
-  {
-      id: 'gcp',
-      name: 'GCP APPLIED',
-      drawLogo: function(ctx: CanvasRenderingContext2D, w: number, h: number) {
-          ctx.fillStyle = '#1D828C';
-          ctx.roundRect(w / 2 - 140, h / 2 - 40, 280, 80, 14);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 48px Outfit, system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('GCP APPLIED', w / 2, h / 2);
-      }
-  }
+  { id: 'sika', bg: '#E2001A', color: '#FFD100', text: 'SIKA' },
+  { id: 'fosroc', bg: '#00529C', color: '#FFC72C', text: 'FOS' },
+  { id: 'mapei', bg: '#006DB7', color: '#fff', text: 'MAPEI' },
+  { id: 'jotun', bg: '#002B49', color: '#fff', text: 'J' }, 
+  { id: 'hilti', bg: '#D8232A', color: '#fff', text: 'HILTI' },
+  { id: 'master', bg: '#002855', color: '#FF6B00', text: 'MB' },
+  { id: 'henkel', bg: '#E10A0A', color: '#fff', text: 'POLY' },
+  { id: 'bostik', bg: '#00A859', color: '#fff', text: 'BOS' },
+  { id: 'weber', bg: '#21409A', color: '#fff', text: 'web' },
+  { id: 'dowsil', bg: '#002C6C', color: '#00A3E0', text: 'DOW' },
+  { id: 'basf', bg: '#004A96', color: '#fff', text: 'BASF' },
+  { id: 'gcp', bg: '#1D828C', color: '#fff', text: 'GCP' }
 ];
 
 export default function BrandWheel() {
-  const mountRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Strict index-based tracking for "1 at a time" snapping
+  const activeIndex = useRef(0);
+  const currentRot = useRef(0);
   
+  // Interaction state
+  const touchStartY = useRef(0);
+  const isSwiping = useRef(false);
+  const lastInteractionTime = useRef(typeof Date !== 'undefined' ? Date.now() : 0);
+  const lastAutoStepTime = useRef(typeof Date !== 'undefined' ? Date.now() : 0);
+
+  const STEP = 360 / BRANDS.length;
+  // Expanded radius to prevent the orbiting items from overlapping the center logo
+  const RADIUS_X = 180; 
+  const RADIUS_Y = 240;
+
   useEffect(() => {
-    if (!mountRef.current) return;
+    let rafId: number;
 
-    let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer;
-    let brandCarouselGroup: THREE.Group, pedestalGroup: THREE.Group;
-    const logoMeshes: THREE.Mesh[] = [];
-    
-    let autoRotate = true;
-    let targetRotationY = 0;
-    let currentRotationY = 0;
-    let isDragging = false;
-    let previousMouseX = 0;
-    
-    let raycaster: THREE.Raycaster, mouse: THREE.Vector2;
-    let hoveredLogo: THREE.Mesh | null = null;
-    let animationFrameId: number;
-
-    const container = mountRef.current;
-
-    function createBrandLogoTexture(brand: any) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 256;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return new THREE.Texture();
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      brand.drawLogo(ctx, canvas.width, canvas.height);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.needsUpdate = true;
-      return texture;
-    }
-
-    function initThreeScene() {
-      const width = container.clientWidth;
-      const height = container.clientHeight || 500; // Default height if zero
-
-      scene = new THREE.Scene();
-      // Changed to null/transparent so it seamlessly blends with the hero section background!
-      scene.background = null; 
-
-      // Perspective Camera
-      camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
-      camera.position.set(0, 1.2, 11); // Slightly pulled back for component view
-
-      // WebGL Renderer - alpha: true allows background to show through
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.1;
+    const loop = () => {
+      const now = Date.now();
       
-      // Clear container and append
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
-      }
-      container.appendChild(renderer.domElement);
-
-      // Studio Lighting
-      const ambientLight = new THREE.AmbientLight(0xffffff, 2.2);
-      scene.add(ambientLight);
-
-      const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
-      mainLight.position.set(5, 12, 10);
-      scene.add(mainLight);
-
-      const blueAccentLight = new THREE.PointLight(0x0056B3, 1.5, 20);
-      blueAccentLight.position.set(-6, -2, 5);
-      scene.add(blueAccentLight);
-
-      const warmRimLight = new THREE.PointLight(0xFFD100, 1.2, 20);
-      warmRimLight.position.set(6, 4, -4);
-      scene.add(warmRimLight);
-
-      brandCarouselGroup = new THREE.Group();
-      scene.add(brandCarouselGroup);
-
-      // Pedestal Floor Ring
-      pedestalGroup = new THREE.Group();
-      scene.add(pedestalGroup);
-
-      const torusGeo = new THREE.TorusGeometry(4.3, 0.02, 16, 100);
-      const torusMat = new THREE.MeshStandardMaterial({
-          color: 0x0056B3,
-          roughness: 0.2,
-          metalness: 0.8
-      });
-      const ringMesh = new THREE.Mesh(torusGeo, torusMat);
-      ringMesh.rotation.x = Math.PI / 2;
-      ringMesh.position.y = -1.2;
-      pedestalGroup.add(ringMesh);
-
-      // Soft Radial Floor Shadow
-      const shadowGeo = new THREE.PlaneGeometry(16, 16);
-      const shadowCanvas = document.createElement('canvas');
-      shadowCanvas.width = 256;
-      shadowCanvas.height = 256;
-      const shadowCtx = shadowCanvas.getContext('2d');
-      if (shadowCtx) {
-        const shadowGrad = shadowCtx.createRadialGradient(128, 128, 10, 128, 128, 120);
-        shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0.12)');
-        shadowGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.03)');
-        shadowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        shadowCtx.fillStyle = shadowGrad;
-        shadowCtx.fillRect(0, 0, 256, 256);
+      // Auto-play slowly if no recent interaction
+      if (now - lastInteractionTime.current > 4000) {
+        if (now - lastAutoStepTime.current > 2500) {
+          activeIndex.current--;
+          lastAutoStepTime.current = now;
+        }
       }
 
-      const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
-      const shadowMat = new THREE.MeshBasicMaterial({
-          map: shadowTexture,
-          transparent: true,
-          opacity: 0.85
-      });
-      const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-      shadowMesh.rotation.x = -Math.PI / 2;
-      shadowMesh.position.y = -1.21;
-      scene.add(shadowMesh);
+      // Smooth, slow lerp to the active index
+      const targetRot = activeIndex.current * STEP;
+      currentRot.current += (targetRot - currentRot.current) * 0.035; // Slow spring
 
-      // Floating Ambient Particles
-      createFloatingParticles();
+      // Render loop: Update DOM directly for maximum 60fps performance
+      itemsRef.current.forEach((el, i) => {
+        if (!el) return;
+        
+        // 0 degrees is the 3 o'clock position (Right edge)
+        const angleDeg = i * STEP - currentRot.current;
+        const angleRad = (angleDeg * Math.PI) / 180;
+        
+        const x = Math.cos(angleRad) * RADIUS_X;
+        const y = Math.sin(angleRad) * RADIUS_Y;
+        
+        // Normalized X gives us a value from 0 (Left edge) to 1 (Right edge).
+        const normalizedX = (Math.cos(angleRad) + 1) / 2;
+        
+        // Use a power curve so the single front-most item pops significantly 
+        // compared to its immediate neighbors.
+        const scaleCurve = Math.pow(normalizedX, 6);
+        
+        // Scaled up min and max for an overall larger appearance
+        const minScale = 0.35;
+        const maxScale = 1.95;
+        const scale = minScale + (scaleCurve * (maxScale - minScale));
+        
+        const minOpacity = 0.05;
+        const maxOpacity = 1;
+        const opacity = minOpacity + (normalizedX * (maxOpacity - minOpacity));
+        
+        const zIndex = Math.round(normalizedX * 100);
 
-      // Populate 12 Floating Pure Logo Planes
-      const numBrands = BRANDS.length;
-      const radius = 4.3;
-
-      BRANDS.forEach((brand, i) => {
-          const angle = (i / numBrands) * Math.PI * 2;
-          const logoGeo = new THREE.PlaneGeometry(2.4, 1.2);
-          const texture = createBrandLogoTexture(brand);
-
-          const logoMat = new THREE.MeshStandardMaterial({
-              map: texture,
-              transparent: true,
-              alphaTest: 0.05,
-              roughness: 0.1,
-              metalness: 0.1,
-              side: THREE.DoubleSide
-          });
-
-          const logoMesh = new THREE.Mesh(logoGeo, logoMat);
-
-          logoMesh.position.x = radius * Math.sin(angle);
-          logoMesh.position.z = radius * Math.cos(angle);
-          logoMesh.position.y = 0;
-          logoMesh.rotation.y = angle;
-
-          logoMesh.userData = {
-              index: i,
-              brand: brand
-          };
-
-          logoMeshes.push(logoMesh);
-          brandCarouselGroup.add(logoMesh);
+        el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${scale})`;
+        el.style.zIndex = zIndex.toString();
+        el.style.opacity = opacity.toString();
+        // Dynamic shadow to physically elevate the highlighted item
+        el.style.boxShadow = `0 ${12 + scaleCurve * 18}px ${25 + scaleCurve * 25}px rgba(0,0,0,${0.1 + scaleCurve * 0.15})`;
       });
 
-      raycaster = new THREE.Raycaster();
-      mouse = new THREE.Vector2();
-
-      setupInteractionListeners();
-      animate();
-    }
-
-    function createFloatingParticles() {
-      const particleCount = 80;
-      const geometry = new THREE.BufferGeometry();
-      const positions = new Float32Array(particleCount * 3);
-
-      for (let i = 0; i < particleCount * 3; i += 3) {
-          positions[i] = (Math.random() - 0.5) * 18;
-          positions[i + 1] = (Math.random() - 0.5) * 10;
-          positions[i + 2] = (Math.random() - 0.5) * 18;
-      }
-
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-      const particleMat = new THREE.PointsMaterial({
-          color: 0x0056B3,
-          size: 0.05,
-          transparent: true,
-          opacity: 0.22
-      });
-
-      const particles = new THREE.Points(geometry, particleMat);
-      scene.add(particles);
-    }
-
-    // Handlers bound locally to component
-    function onPointerDown(e: MouseEvent | TouchEvent) {
-      isDragging = true;
-      if (e instanceof MouseEvent) {
-        previousMouseX = e.clientX;
-      } else {
-        previousMouseX = e.touches[0].clientX;
-      }
-    }
-
-    function onPointerUp() {
-      isDragging = false;
-    }
-
-    function onPointerMove(e: MouseEvent | TouchEvent) {
-      const rect = container.getBoundingClientRect();
-      const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
-      const clientY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
-
-      // Map to -1 to +1 for raycaster, relative to the container element
-      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-
-      if (isDragging) {
-          const deltaX = clientX - previousMouseX;
-          targetRotationY += deltaX * 0.007;
-          previousMouseX = clientX;
-      }
-    }
-
-    function onWindowResize() {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight || 500;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    }
-
-    function setupInteractionListeners() {
-      const dom = renderer.domElement;
-      
-      dom.addEventListener('mousedown', onPointerDown as any);
-      dom.addEventListener('touchstart', onPointerDown as any, { passive: false });
-      
-      window.addEventListener('mouseup', onPointerUp);
-      window.addEventListener('touchend', onPointerUp);
-      
-      window.addEventListener('mousemove', onPointerMove as any);
-      window.addEventListener('touchmove', onPointerMove as any, { passive: false });
-      
-      window.addEventListener('resize', onWindowResize);
-    }
-
-    function animate() {
-      animationFrameId = requestAnimationFrame(animate);
-
-      // Auto-rotation when idle
-      if (autoRotate && !isDragging) {
-          targetRotationY += 0.0025;
-      }
-
-      // Rotational Physics Lerp
-      currentRotationY += (targetRotationY - currentRotationY) * 0.08;
-      brandCarouselGroup.rotation.y = currentRotationY;
-
-      // Hover elevation raycasting
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(logoMeshes);
-
-      if (hoveredLogo) {
-          hoveredLogo.position.y = THREE.MathUtils.lerp(hoveredLogo.position.y, 0, 0.1);
-          hoveredLogo.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
-          hoveredLogo = null;
-      }
-
-      if (intersects.length > 0) {
-          hoveredLogo = intersects[0].object as THREE.Mesh;
-          hoveredLogo.position.y = THREE.MathUtils.lerp(hoveredLogo.position.y, 0.25, 0.15);
-          hoveredLogo.scale.lerp(new THREE.Vector3(1.12, 1.12, 1.12), 0.15);
-      }
-
-      renderer.render(scene, camera);
-    }
-
-    // Initialize!
-    initThreeScene();
-
-    // Cleanup on unmount
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('mouseup', onPointerUp);
-      window.removeEventListener('touchend', onPointerUp);
-      window.removeEventListener('mousemove', onPointerMove as any);
-      window.removeEventListener('touchmove', onPointerMove as any);
-      window.removeEventListener('resize', onWindowResize);
-      
-      if (renderer) {
-        renderer.dispose();
-      }
+      rafId = requestAnimationFrame(loop);
     };
-  }, []);
+
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, [STEP]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isSwiping.current = true;
+    touchStartY.current = e.clientY;
+    lastInteractionTime.current = Date.now();
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isSwiping.current) return;
+    
+    const deltaY = touchStartY.current - e.clientY;
+    
+    // Threshold to trigger a 1-item snap
+    if (Math.abs(deltaY) > 40) {
+      if (deltaY > 0) {
+        activeIndex.current--; // Drag up
+      } else {
+        activeIndex.current++; // Drag down
+      }
+      // Reset interaction so it doesn't trigger multiple times in one swipe
+      isSwiping.current = false;
+      lastInteractionTime.current = Date.now();
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    isSwiping.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    const now = Date.now();
+    lastInteractionTime.current = now;
+    
+    // Throttle wheel events to ensure strict 1-by-1 snapping
+    if (now - lastAutoStepTime.current < 500) return;
+    
+    if (e.deltaY > 0) activeIndex.current--;
+    else activeIndex.current++;
+    
+    lastAutoStepTime.current = now;
+  };
 
   return (
     <div 
-      ref={mountRef} 
-      className="webgl-brand-carousel"
-      style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '400px',
-        cursor: 'grab',
-        position: 'relative',
-        zIndex: 10
-      }}
-    />
+      ref={containerRef}
+      className="dial-carousel-container"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onWheel={handleWheel}
+    >
+      <style>{`
+        .dial-carousel-container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          min-height: 480px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          cursor: grab;
+          touch-action: none;
+          z-index: 10;
+        }
+
+        .dial-carousel-container:active {
+          cursor: grabbing;
+        }
+
+        .dial-center-text {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 5;
+          pointer-events: none;
+          /* Add a soft glow behind the logo */
+          border-radius: 50%;
+          box-shadow: 0 0 60px 20px rgba(255, 255, 255, 0.4);
+          background: #fff;
+          display: grid;
+          place-items: center;
+          padding: 4px;
+        }
+
+        .dial-origin {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 0;
+          height: 0;
+        }
+
+        .dial-item {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 90px;
+          height: 90px;
+          border-radius: 18px;
+          display: grid;
+          place-items: center;
+          font-family: var(--font-display, inherit);
+          font-weight: 900;
+          font-size: 22px;
+          letter-spacing: -0.02em;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+          transform-origin: center;
+          user-select: none;
+          will-change: transform, opacity;
+        }
+      `}</style>
+
+      <div className="dial-center-text">
+        <Image
+          src="/logo.png"
+          alt="Imperial Logo"
+          width={90}
+          height={90}
+          priority
+          style={{ 
+            objectFit: 'cover', 
+            height: '90px', 
+            width: '90px',
+            borderRadius: '50%',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}
+        />
+      </div>
+
+      <div className="dial-origin">
+        {BRANDS.map((brand, i) => (
+          <div
+            key={brand.id}
+            ref={(el) => {
+              itemsRef.current[i] = el;
+            }}
+            className="dial-item"
+            style={{
+              background: brand.bg,
+              color: brand.color,
+            }}
+          >
+            {brand.text}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

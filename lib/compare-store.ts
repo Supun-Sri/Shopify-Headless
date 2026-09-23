@@ -21,8 +21,8 @@ export const useCompareStore = create<CompareState>()(
           if (state.products.find((p) => p.id === product.id)) {
             return state;
           }
-          // Optional: limit to 4 products to avoid UI breaking on desktop
-          return { products: [...state.products, product].slice(-4) };
+          // Limit to 6 products
+          return { products: [...state.products, product].slice(-6) };
         }),
       removeProduct: (id) =>
         set((state) => ({
