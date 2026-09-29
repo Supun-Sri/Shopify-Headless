@@ -6,9 +6,11 @@ import { useState } from 'react';
 interface PLPToolbarProps {
   totalCount: number;
   currentSort: string;
+  pageStart?: number; // 1-based index of first item on this page
+  hasNextPage?: boolean;
 }
 
-export default function PLPToolbar({ totalCount, currentSort }: PLPToolbarProps) {
+export default function PLPToolbar({ totalCount, currentSort, pageStart = 1, hasNextPage = false }: PLPToolbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -25,10 +27,12 @@ export default function PLPToolbar({ totalCount, currentSort }: PLPToolbarProps)
     router.push(`${pathname}?${params.toString()}`);
   };
 
+  const pageEnd = pageStart + totalCount - 1;
+
   return (
     <div className="plptoolbar">
       <span>
-        Showing 1–{totalCount} of {totalCount} product{totalCount !== 1 ? 's' : ''}
+        Showing {pageStart}–{pageEnd}{!hasNextPage ? ` of ${pageEnd}` : '+'} product{totalCount !== 1 ? 's' : ''}
       </span>
       <div className="toolgroup">
         <select

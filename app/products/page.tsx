@@ -25,6 +25,7 @@ interface PageProps {
     type?: string;
     tag?: string | string[];
     after?: string; // Shopify cursor for next-page pagination
+    page?: string;  // numeric page number for display
   }>;
 }
 
@@ -60,12 +61,13 @@ function ProductGridSkeleton() {
 }
 
 async function ProductGrid({
-  sort, q, minPrice, maxPrice, collection, vendor, type, tags, after, baseParams,
+  sort, q, minPrice, maxPrice, collection, vendor, type, tags, after, baseParams, pageNum,
 }: {
   sort?: string; q?: string; minPrice?: string; maxPrice?: string;
   collection?: string; vendor?: string; type?: string; tags?: string[];
   after?: string;
   baseParams: Record<string, string | undefined>;
+  pageNum: number;
 }) {
   try {
     const { sortKey, reverse } = getSortVariables(sort);
@@ -123,14 +125,21 @@ async function ProductGrid({
     }
 
     const isFirstPage = !after;
-    const prevUrl = isFirstPage ? null : buildUrl(baseParams, { after: undefined });
+    const prevUrl = isFirstPage ? null : buildUrl(baseParams, { after: undefined, page: String(pageNum - 1) });
     const nextUrl = pageInfo.hasNextPage && pageInfo.endCursor
-      ? buildUrl(baseParams, { after: pageInfo.endCursor })
+      ? buildUrl(baseParams, { after: pageInfo.endCursor, page: String(pageNum + 1) })
       : null;
+
+    const pageStart = (pageNum - 1) * PRODUCTS_PER_PAGE + 1;
 
     return (
       <>
-        <PLPToolbar totalCount={products.length} currentSort={sort || ''} />
+        <PLPToolbar
+          totalCount={products.length}
+          currentSort={sort || ''}
+          pageStart={pageStart}
+          hasNextPage={pageInfo.hasNextPage}
+        />
         <div className="prodgrid">
           {products.map((product, i) => (
             <ProductCard key={product.id} product={product} priority={i < 4} />
@@ -157,7 +166,7 @@ async function ProductGrid({
               )}
 
               <span className="pg active" style={{ cursor: 'default' }}>
-                {isFirstPage ? 'Page 1' : '···'}
+                Page {pageNum}
               </span>
 
               {nextUrl ? (
@@ -219,6 +228,9 @@ export default async function ProductsPage({ searchParams }: PageProps) {
   };
   if (tags.length > 0) baseParams.tag = tags[0];
 
+  // Parse page number from URL (defaults to 1 when no cursor is present)
+  const pageNum = Math.max(1, parseInt(params.page || '1', 10));
+
   return (
     <>
       {/* Breadcrumb */}
@@ -264,6 +276,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
               tags={tags}
               after={params.after}
               baseParams={baseParams}
+              pageNum={pageNum}
             />
           </Suspense>
         </main>

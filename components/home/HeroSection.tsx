@@ -48,7 +48,7 @@ export default function HeroSection() {
       {/* Immersive Background Image */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Image 
-          src="/Gemini_Generated_Image_s18lxes18lxes18l.jpg" 
+          src="/Gemini_Generated_Image_s18lxes18lxes18l.png" 
           alt="Imperial Construction Projects" 
           fill
           priority
