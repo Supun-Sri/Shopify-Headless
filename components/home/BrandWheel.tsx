@@ -179,13 +179,8 @@ export default function BrandWheel() {
           transform: translate(-50%, -50%);
           z-index: 5;
           pointer-events: none;
-          /* Add a soft glow behind the logo */
-          border-radius: 50%;
-          box-shadow: 0 0 60px 20px rgba(255, 255, 255, 0.4);
-          background: #fff;
           display: grid;
           place-items: center;
-          padding: 4px;
         }
 
         .dial-origin {
@@ -218,15 +213,14 @@ export default function BrandWheel() {
       <div className="dial-center-text">
         <Image
           src="/IME LOGO - TRANSPARENT BACKGROUND.png"
-          alt="Imperial Logo"
-          width={90}
-          height={90}
+          alt="Imperial Middle East Logo"
+          width={140}
+          height={140}
           priority
           style={{ 
             objectFit: 'contain', 
-            height: '90px', 
-            width: '90px',
-            borderRadius: '50%',
+            height: '140px', 
+            width: '140px',
           }}
         />
       </div>
