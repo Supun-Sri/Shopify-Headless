@@ -217,17 +217,16 @@ export default function BrandWheel() {
 
       <div className="dial-center-text">
         <Image
-          src="/logo.png"
+          src="/IME LOGO - TRANSPARENT BACKGROUND.png"
           alt="Imperial Logo"
           width={90}
           height={90}
           priority
           style={{ 
-            objectFit: 'cover', 
+            objectFit: 'contain', 
             height: '90px', 
             width: '90px',
             borderRadius: '50%',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}
         />
       </div>
