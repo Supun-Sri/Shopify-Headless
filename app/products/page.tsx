@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'Browse IMPERIAL construction chemicals, building materials, tools and equipment. UAE stocked, project ready.',
 };
 
-const PRODUCTS_PER_PAGE = 12;
+const PRODUCTS_PER_PAGE = 24;
 
 interface PageProps {
   searchParams: Promise<{
