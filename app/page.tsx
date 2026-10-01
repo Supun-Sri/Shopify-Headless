@@ -86,33 +86,31 @@ export default async function HomePage() {
       <HeroSection />
 
       {/* Imperial Rewards Banner */}
-      <div className="section" style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--imperial-blue) 100%)', color: '#fff', padding: '48px 40px', borderRadius: 'var(--r-card)', margin: '48px 28px', boxShadow: 'var(--sh-lift)', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '40px', flexWrap: 'wrap' }}>
-          {/* Text + CTA */}
-          <div style={{ flex: '1', minWidth: '260px' }}>
-            <h2 style={{ color: '#fff', borderBottom: 'none', padding: 0, marginBottom: '16px', fontSize: 'clamp(26px, 4vw, 36px)' }}>Imperial Rewards</h2>
-            <p style={{ fontSize: '15px', lineHeight: '1.7', color: 'rgba(255,255,255,0.88)', maxWidth: '480px', marginBottom: '28px' }}>
-              Join our exclusive royalty program today! Earn points on every purchase, unlock professional tiers, and get a <strong style={{ color: '#FFD100' }}>10% discount on your first order</strong>.
-            </p>
-            <Link href="/account/register" className="btn primary" style={{ background: '#fff', color: 'var(--navy)', border: 'none', fontSize: '15px', padding: '13px 26px', display: 'inline-flex' }}>
-              Sign Up Now — Get 10% Off
-            </Link>
-          </div>
-          {/* Rewards Card Image */}
-          <div style={{ flex: '1', minWidth: '260px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <img
-              src="/IME WEB REWARDS CARDS.png"
-              alt="Imperial Rewards Cards"
-              style={{
-                maxWidth: '420px',
-                width: '100%',
-                height: 'auto',
-                objectFit: 'contain',
-                filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.3))',
-                transform: 'perspective(800px) rotateY(-6deg)',
-              }}
-            />
-          </div>
+      <div style={{ position: 'relative', borderRadius: 'var(--r-card)', margin: '48px 28px', boxShadow: 'var(--sh-lift)', overflow: 'hidden', minHeight: '280px' }}>
+        {/* Full-width background image */}
+        <img
+          src="/IME WEB REWARDS CARDS.png"
+          alt="Imperial Rewards Cards"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+          }}
+        />
+        {/* Gradient overlay so text is readable */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(7,27,70,0.88) 0%, rgba(9,79,168,0.55) 60%, rgba(9,79,168,0.1) 100%)' }} />
+        {/* Text + CTA on top */}
+        <div style={{ position: 'relative', zIndex: 2, padding: '56px 48px', color: '#fff', maxWidth: '520px' }}>
+          <h2 style={{ color: '#fff', borderBottom: 'none', padding: 0, marginBottom: '14px', fontSize: 'clamp(26px, 4vw, 36px)' }}>Imperial Rewards</h2>
+          <p style={{ fontSize: '15px', lineHeight: '1.7', color: 'rgba(255,255,255,0.88)', marginBottom: '28px' }}>
+            Join our exclusive royalty program today! Earn points on every purchase, unlock professional tiers, and get a <strong style={{ color: '#FFD100' }}>10% discount on your first order</strong>.
+          </p>
+          <Link href="/account/register" className="btn primary" style={{ background: '#fff', color: 'var(--navy)', border: 'none', fontSize: '15px', padding: '13px 26px', display: 'inline-flex' }}>
+            Sign Up Now — Get 10% Off
+          </Link>
         </div>
       </div>
 
