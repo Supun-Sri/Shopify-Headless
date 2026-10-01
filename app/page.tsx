@@ -100,15 +100,15 @@ export default async function HomePage() {
             objectPosition: 'center',
           }}
         />
-        {/* Gradient overlay so text is readable */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(7,27,70,0.88) 0%, rgba(9,79,168,0.55) 60%, rgba(9,79,168,0.1) 100%)' }} />
-        {/* Text + CTA on top */}
-        <div style={{ position: 'relative', zIndex: 2, padding: '56px 48px', color: '#fff', maxWidth: '520px' }}>
+        {/* Dark overlay for readability */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(7,27,70,0.65)' }} />
+        {/* Centered text + CTA */}
+        <div style={{ position: 'relative', zIndex: 2, padding: '64px 28px', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           <h2 style={{ color: '#fff', borderBottom: 'none', padding: 0, marginBottom: '14px', fontSize: 'clamp(26px, 4vw, 36px)' }}>Imperial Rewards</h2>
-          <p style={{ fontSize: '15px', lineHeight: '1.7', color: 'rgba(255,255,255,0.88)', marginBottom: '28px' }}>
+          <p style={{ fontSize: '15px', lineHeight: '1.7', color: 'rgba(255,255,255,0.9)', maxWidth: '560px', marginBottom: '28px' }}>
             Join our exclusive royalty program today! Earn points on every purchase, unlock professional tiers, and get a <strong style={{ color: '#FFD100' }}>10% discount on your first order</strong>.
           </p>
-          <Link href="/account/register" className="btn primary" style={{ background: '#fff', color: 'var(--navy)', border: 'none', fontSize: '15px', padding: '13px 26px', display: 'inline-flex' }}>
+          <Link href="/account/register" className="btn primary" style={{ background: '#fff', color: 'var(--navy)', border: 'none', fontSize: '15px', padding: '13px 28px', display: 'inline-flex' }}>
             Sign Up Now — Get 10% Off
           </Link>
         </div>
