@@ -87,7 +87,7 @@ export default function CompareClient() {
               // We'll show the other value in the subtitle.
               const priceNum = parseFloat(basePrice.amount);
               const exclTaxAmount = priceNum / (1 + vatRate);
-              const exclTaxStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: basePrice.currencyCode }).format(exclTaxAmount);
+              const exclTaxStr = new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(exclTaxAmount);
 
               return (
                 <td key={p.id} style={{ border: '1px solid var(--line)', padding: '24px', verticalAlign: 'top', position: 'relative', width: '300px' }}>

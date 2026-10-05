@@ -23,18 +23,18 @@ export function usePrice() {
     // If Shopify prices are inclusive of VAT, and user wants INCLUSIVE, we do nothing to the base.
     const finalAmount = isVatInclusive ? baseAmount : baseAmount / (1 + vatRate);
 
-    const formatted = new Intl.NumberFormat('en-US', {
+    const formatted = new Intl.NumberFormat('en-AE', {
       style: 'currency',
-      currency: money.currencyCode,
+      currency: 'AED',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(finalAmount);
 
     // To prevent hydration mismatches, default to the inclusive price before mounting
     if (!mounted) {
-      return new Intl.NumberFormat('en-US', {
+      return new Intl.NumberFormat('en-AE', {
         style: 'currency',
-        currency: money.currencyCode,
+        currency: 'AED',
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }).format(baseAmount);
