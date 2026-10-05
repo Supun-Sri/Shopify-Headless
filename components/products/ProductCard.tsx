@@ -7,7 +7,7 @@ import type { ShopifyProduct } from '@/lib/types';
 import { useCartStore } from '@/lib/cart-store';
 import { useWishlistStore } from '@/lib/wishlist-store';
 import { addLineItemAction } from '@/app/actions/cart';
-import { usePrice } from '@/lib/use-price';
+import { usePrice, isUnknownPrice } from '@/lib/use-price';
 
 interface ProductCardProps {
   product: ShopifyProduct;
@@ -30,6 +30,9 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
 
   const defaultVariant = product.variants.find((v) => v.availableForSale) || product.variants[0];
   const isAvailable = defaultVariant?.availableForSale;
+
+  const currentPrice = defaultVariant?.price ?? product.priceRange.minVariantPrice;
+  const unknownPrice = isUnknownPrice(currentPrice);
 
   const handleAddToCart = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -152,22 +155,36 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             : `In Stock${stockQty !== null ? ` (${stockQty})` : ''}`}
         </div>
         <div className="price prod-card-price">
-          <span className="card-price-value">
-            {formatWithVat(defaultVariant?.price ?? product.priceRange.minVariantPrice)}
-          </span>
-          <small> / unit</small>
+          {unknownPrice ? (
+            <span className="card-price-value" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--imperial-blue)' }}>
+              Request for Quote
+            </span>
+          ) : (
+            <>
+              <span className="card-price-value">
+                {formatWithVat(currentPrice)}
+              </span>
+              <small> / unit</small>
+            </>
+          )}
         </div>
         <button
-          className={`qadd prod-card-add ${added ? 'added' : ''} ${!isAvailable ? 'out-of-stock' : ''}`}
-          onClick={handleAddToCart}
-          disabled={!isAvailable || isAdding}
-          aria-label={`Add ${product.title} to cart`}
+          className={`qadd prod-card-add ${added ? 'added' : ''} ${(!isAvailable && !unknownPrice) ? 'out-of-stock' : ''}`}
+          onClick={unknownPrice ? (e) => { e.preventDefault(); e.stopPropagation(); window.location.href='/rfq'; } : handleAddToCart}
+          disabled={(!isAvailable && !unknownPrice) || isAdding}
+          aria-label={unknownPrice ? `Request quote for ${product.title}` : `Add ${product.title} to cart`}
         >
           <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
+            {unknownPrice ? (
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            ) : (
+              <>
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </>
+            )}
           </svg>
-          {isAdding ? 'Adding...' : added ? '✓ Added' : isAvailable ? 'Quick Add' : 'Out of Stock'}
+          {unknownPrice ? 'Get Quote' : isAdding ? 'Adding...' : added ? '✓ Added' : isAvailable ? 'Quick Add' : 'Out of Stock'}
         </button>
       </div>
     </div>

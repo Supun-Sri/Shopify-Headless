@@ -45,3 +45,12 @@ export function usePrice() {
 
   return { formatWithVat, isVatInclusive, vatRate };
 }
+
+/**
+ * Helper to check if a product price is unknown (0 or undefined).
+ */
+export function isUnknownPrice(money?: Money | null): boolean {
+  if (!money) return true;
+  const val = parseFloat(money.amount);
+  return isNaN(val) || val === 0 || val === 1;
+}

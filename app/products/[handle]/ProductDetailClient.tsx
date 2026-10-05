@@ -8,7 +8,7 @@ import type { ShopifyProduct } from '@/lib/types';
 import { useCartStore } from '@/lib/cart-store';
 import { useCompareStore } from '@/lib/compare-store';
 import { addLineItemAction } from '@/app/actions/cart';
-import { usePrice } from '@/lib/use-price';
+import { usePrice, isUnknownPrice } from '@/lib/use-price';
 import { getProductCoverageInfo } from '@/lib/coverage';
 
 export default function ProductDetailClient({ product }: { product: ShopifyProduct }) {
@@ -178,8 +178,14 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
 
           {/* Price box */}
           <div className="pricebox pdp-pricebox">
-            <div className="price pdp-price">{formatWithVat(selectedVariant?.price ?? product.priceRange.minVariantPrice)}</div>
-            <div className="vatnote pdp-vatnote">Price {isVatInclusive ? 'includes 5% VAT' : 'excludes VAT'}</div>
+            {isUnknownPrice(selectedVariant?.price ?? product.priceRange.minVariantPrice) ? (
+              <div className="price pdp-price" style={{ color: 'var(--imperial-blue)' }}>Request for Quote</div>
+            ) : (
+              <>
+                <div className="price pdp-price">{formatWithVat(selectedVariant?.price ?? product.priceRange.minVariantPrice)}</div>
+                <div className="vatnote pdp-vatnote">Price {isVatInclusive ? 'includes 5% VAT' : 'excludes VAT'}</div>
+              </>
+            )}
           </div>
 
           {/* Stock message */}
@@ -363,18 +369,30 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
 
           {/* CTA Row */}
           <div className="cta-row pdp-cta-row">
-            <button
-              className="btn primary block"
-              onClick={handleAddToCart}
-              disabled={!isAvailable || isAdding}
-            >
-              <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 4h2.5l2 11h11l2-8H6.5" />
-                <circle cx="9" cy="19" r="1.5" />
-                <circle cx="17" cy="19" r="1.5" />
-              </svg>
-              {isAdding ? 'Adding...' : added ? '✓ Added to Cart' : isAvailable ? 'Add to Cart' : 'Out of Stock'}
-            </button>
+            {isUnknownPrice(selectedVariant?.price ?? product.priceRange.minVariantPrice) ? (
+              <button
+                className="btn primary block"
+                onClick={() => router.push('/rfq')}
+              >
+                <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                Request Quote
+              </button>
+            ) : (
+              <button
+                className="btn primary block"
+                onClick={handleAddToCart}
+                disabled={!isAvailable || isAdding}
+              >
+                <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 4h2.5l2 11h11l2-8H6.5" />
+                  <circle cx="9" cy="19" r="1.5" />
+                  <circle cx="17" cy="19" r="1.5" />
+                </svg>
+                {isAdding ? 'Adding...' : added ? '✓ Added to Cart' : isAvailable ? 'Add to Cart' : 'Out of Stock'}
+              </button>
+            )}
             <Link href="/rfq" className="btn secondary">
               Negotiate with Supplier
             </Link>
@@ -463,7 +481,39 @@ export default function ProductDetailClient({ product }: { product: ShopifyProdu
           </div>
 
           {activeTab === 'desc' && (
-            <div className="tabpanel pdp-tabpanel" dangerouslySetInnerHTML={{ __html: product.descriptionHtml || product.description || 'Detailed technical description available upon request.' }} />
+            <div className="tabpanel pdp-tabpanel">
+              {(() => {
+                const desc = product.descriptionHtml || product.description || '';
+                if (!desc) return 'Detailed technical description available upon request.';
+                
+                const stripped = desc.replace(/<[^>]*>?/gm, '').trim();
+                let isOnlyUrl = false;
+                try {
+                  new URL(stripped);
+                  isOnlyUrl = stripped.startsWith('http');
+                } catch {
+                  // Not a valid URL
+                }
+
+                if (isOnlyUrl) {
+                  return (
+                    <div style={{ padding: '20px 0' }}>
+                      <a href={stripped} target="_blank" rel="noopener noreferrer" className="btn secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                        View Technical Document / Specs
+                      </a>
+                    </div>
+                  );
+                }
+
+                return <div dangerouslySetInnerHTML={{ __html: desc }} />;
+              })()}
+            </div>
           )}
 
           {activeTab === 'docs' && (
