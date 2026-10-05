@@ -3,23 +3,6 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { getCustomerKey, getStoredWishlist, saveStoredWishlist } from '@/lib/wishlist-server';
 
-function parseCookie(cookieVal?: string): string[] {
-  if (!cookieVal) return [];
-  try {
-    let raw = cookieVal;
-    if (raw.includes('%')) {
-      try { raw = decodeURIComponent(raw); } catch {}
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map(String);
-  } catch {}
-  try {
-    const parsed = JSON.parse(cookieVal);
-    if (Array.isArray(parsed)) return parsed.map(String);
-  } catch {}
-  return [];
-}
-
 export async function GET() {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('customer_access_token')?.value;
@@ -30,16 +13,9 @@ export async function GET() {
   }
 
   const customerKey = getCustomerKey(idToken);
-  const serverItems = getStoredWishlist(customerKey);
-  const customerCookieItems = parseCookie(cookieStore.get('customer_wishlist_' + customerKey)?.value);
-  const sessionCookieItems = parseCookie(cookieStore.get('wishlist_items')?.value);
+  const items = await getStoredWishlist(customerKey);
 
-  const combined = Array.from(new Set([...serverItems, ...customerCookieItems, ...sessionCookieItems]));
-  if (combined.length > serverItems.length) {
-    saveStoredWishlist(customerKey, combined);
-  }
-
-  return NextResponse.json({ isLoggedIn: true, items: combined });
+  return NextResponse.json({ isLoggedIn: true, items });
 }
 
 export async function POST(request: Request) {
@@ -60,7 +36,7 @@ export async function POST(request: Request) {
     if (Array.isArray(items)) {
       updated = Array.from(new Set(items));
     } else {
-      const current = getStoredWishlist(customerKey);
+      const current = await getStoredWishlist(customerKey);
       if (action === 'add' && productId) {
         updated = Array.from(new Set([...current, productId]));
       } else if (action === 'remove' && productId) {
@@ -70,21 +46,7 @@ export async function POST(request: Request) {
       }
     }
 
-    saveStoredWishlist(customerKey, updated);
-    const serialized = JSON.stringify(updated);
-
-    cookieStore.set('customer_wishlist_' + customerKey, serialized, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: 'lax',
-      httpOnly: false,
-    });
-    cookieStore.set('wishlist_items', serialized, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: 'lax',
-      httpOnly: false,
-    });
+    await saveStoredWishlist(customerKey, updated);
 
     try {
       revalidatePath('/account/wishlist');

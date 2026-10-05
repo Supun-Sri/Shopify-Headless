@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       try {
         const { getCustomerKey, getStoredWishlist } = await import('@/lib/wishlist-server');
         const customerKey = getCustomerKey(data.id_token);
-        const saved = getStoredWishlist(customerKey);
+        const saved = await getStoredWishlist(customerKey);
         if (saved && saved.length > 0) {
           const serialized = JSON.stringify(saved);
           cookieStore.set('wishlist_items', serialized, {

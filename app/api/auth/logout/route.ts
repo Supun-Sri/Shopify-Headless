@@ -28,10 +28,10 @@ export async function GET(request: Request) {
         ...parseItems(wishlistCookie),
         ...parseItems(customerWishlistCookie),
       ];
-      const serverItems = getStoredWishlist(customerKey);
+      const serverItems = await getStoredWishlist(customerKey);
       const merged = Array.from(new Set([...serverItems, ...cookieItems]));
       if (merged.length > 0) {
-        saveStoredWishlist(customerKey, merged);
+        await saveStoredWishlist(customerKey, merged);
       }
     }
   } catch (err) {

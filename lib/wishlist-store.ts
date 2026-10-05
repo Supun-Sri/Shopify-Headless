@@ -107,11 +107,27 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: 'imperial_customer_wishlist',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => {
+        if (typeof window !== 'undefined') {
+          return localStorage;
+        }
+        // SSR fallback: no-op storage
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        };
+      }),
       partialize: (state) => ({
         items: state.items,
         // Don't persist isLoggedIn or _serverSynced — those are session-specific
       }),
+      // After rehydration from localStorage, sync the cookie
+      onRehydrateStorage: () => (state) => {
+        if (state?.items && state.items.length > 0) {
+          syncCookie(state.items);
+        }
+      },
     }
   )
 );

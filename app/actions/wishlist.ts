@@ -3,23 +3,6 @@
 import { cookies } from 'next/headers';
 import { getCustomerKey, getStoredWishlist, saveStoredWishlist } from '@/lib/wishlist-server';
 
-function parseWishlistCookie(cookieVal?: string): string[] {
-  if (!cookieVal) return [];
-  try {
-    let raw = cookieVal;
-    if (raw.includes('%')) {
-      try { raw = decodeURIComponent(raw); } catch {}
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map(String);
-  } catch {}
-  try {
-    const parsed = JSON.parse(cookieVal);
-    if (Array.isArray(parsed)) return parsed.map(String);
-  } catch {}
-  return [];
-}
-
 export async function getWishlist(): Promise<string[]> {
   try {
     const cookieStore = await cookies();
@@ -32,18 +15,8 @@ export async function getWishlist(): Promise<string[]> {
     }
 
     const customerKey = getCustomerKey(idToken);
-    const serverItems = getStoredWishlist(customerKey);
-    const customerCookie = `customer_wishlist_${customerKey}`;
-    
-    const fromCustomer = parseWishlistCookie(cookieStore.get(customerCookie)?.value);
-    const fromSession = parseWishlistCookie(cookieStore.get('wishlist_items')?.value);
-
-    // Merge server storage with cookies so no items are ever lost across sign-in/sign-out
-    const combined = Array.from(new Set([...serverItems, ...fromCustomer, ...fromSession]));
-    if (combined.length > serverItems.length) {
-      saveStoredWishlist(customerKey, combined);
-    }
-    return combined;
+    const items = await getStoredWishlist(customerKey);
+    return items;
   } catch (err: any) {
     if (err?.digest === 'DYNAMIC_SERVER_USAGE' || err?.message?.includes('Dynamic server usage')) {
       throw err;
@@ -73,9 +46,11 @@ export async function toggleWishlistItem(
       return { success: false, items: [], error: 'UNAUTHENTICATED' };
     }
 
+    const customerKey = getCustomerKey(idToken);
+
     const baseItems = Array.isArray(clientItems) && clientItems.length > 0
       ? clientItems
-      : await getWishlist();
+      : await getStoredWishlist(customerKey);
 
     let updated: string[];
     if (action === 'add') {
@@ -95,26 +70,7 @@ export async function toggleWishlistItem(
         : [...baseItems, productId];
     }
 
-    const customerKey = getCustomerKey(idToken);
-    saveStoredWishlist(customerKey, updated);
-    const customerCookie = `customer_wishlist_${customerKey}`;
-    const serialized = JSON.stringify(updated);
-
-    // Save to customer-specific cookie
-    cookieStore.set(customerCookie, serialized, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: 'lax',
-      httpOnly: false,
-    });
-
-    // Also sync session cookie
-    cookieStore.set('wishlist_items', serialized, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: 'lax',
-      httpOnly: false,
-    });
+    await saveStoredWishlist(customerKey, updated);
 
     // NOTE: We intentionally do NOT call revalidatePath() here.
     // The client-side Zustand store is the source of truth for the UI.
