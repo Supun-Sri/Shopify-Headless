@@ -20,15 +20,22 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  // Use the stable site URL — OAuth callback must happen on this domain.
-  const siteOrigin = (process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin).replace(/\/$/, '');
+  
+  // Normalize the site URL (add https:// if missing, remove trailing slash)
+  let rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+  if (!rawSiteUrl.startsWith('http')) {
+    rawSiteUrl = `https://${rawSiteUrl}`;
+  }
+  const siteOrigin = rawSiteUrl.replace(/\/$/, '');
   const currentOrigin = url.origin.replace(/\/$/, '');
 
   // If on a deploy preview (different origin), redirect to the stable domain.
-  // The ENTIRE OAuth flow (login → Shopify → callback) must happen on the same
-  // domain so PKCE cookies are available when the callback arrives.
-  if (currentOrigin !== siteOrigin) {
-    return NextResponse.redirect(`${siteOrigin}/api/auth/login`);
+  // We use searchParams.has('redirected') as a failsafe to prevent infinite loops
+  // if the environment variables are misconfigured.
+  if (currentOrigin !== siteOrigin && !url.searchParams.has('redirected')) {
+    const targetUrl = new URL(`${siteOrigin}/api/auth/login`);
+    targetUrl.searchParams.set('redirected', '1');
+    return NextResponse.redirect(targetUrl.toString());
   }
 
   // 1. Generate state and nonce
