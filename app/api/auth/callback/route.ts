@@ -57,6 +57,7 @@ export async function GET(request: Request) {
         secure: isProduction,
         maxAge: tokenExpiry,
         path: '/',
+        sameSite: 'lax',
       });
     }
     
@@ -67,6 +68,7 @@ export async function GET(request: Request) {
         secure: isProduction,
         maxAge: tokenExpiry,
         path: '/',
+        sameSite: 'lax',
       });
 
       // Restore customer persistent wishlist into session cookies

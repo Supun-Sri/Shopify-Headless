@@ -20,19 +20,9 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  // Use a stable site URL for the redirect URI to avoid Netlify deploy preview mismatches.
+  // Use the stable site URL for the OAuth redirect_uri so it matches Shopify's registered callback.
+  // Don't redirect the user to a different domain — just use the stable URL for the callback only.
   const siteOrigin = (process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin).replace(/\/$/, '');
-
-  // If the user is on a deploy preview (different domain), redirect them to the
-  // stable domain's login route first. This ensures auth cookies are set on the
-  // same domain that will receive the OAuth callback.
-  // Guard against redirect loops: only redirect if the origins truly differ.
-  const currentOrigin = url.origin.replace(/\/$/, '');
-  if (siteOrigin && currentOrigin !== siteOrigin && !url.searchParams.has('redirected')) {
-    const targetUrl = new URL(`${siteOrigin}/api/auth/login`);
-    targetUrl.searchParams.set('redirected', '1');
-    return NextResponse.redirect(targetUrl.toString());
-  }
 
   // 1. Generate state and nonce
   const state = generateRandomString(32);
