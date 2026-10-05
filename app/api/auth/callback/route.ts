@@ -23,7 +23,11 @@ export async function GET(request: Request) {
 
   try {
     // Must match the redirect_uri used in the login route exactly
-    const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+    let rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+    if (!rawSiteUrl.startsWith('http')) {
+      rawSiteUrl = `https://${rawSiteUrl}`;
+    }
+    const siteOrigin = rawSiteUrl.replace(/\/$/, '');
     const redirectUri = `${siteOrigin}/api/auth/callback`;
 
     // Exchange code for token

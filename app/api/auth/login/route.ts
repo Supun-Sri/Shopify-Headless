@@ -19,6 +19,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Shopify Customer API credentials not configured.' }, { status: 500 });
   }
 
+  // Failsafe: Ensure SHOPIFY_AUTH_URL isn't accidentally pointing back to our own app,
+  // which causes an infinite redirect loop.
+  if (authUrl.includes('/api/auth/login') || !authUrl.includes('shopify.com')) {
+    return NextResponse.json({ 
+      error: 'CRITICAL CONFIG ERROR: SHOPIFY_AUTH_URL in your environment variables is incorrect. It should be your Shopify Customer Account API authorization endpoint (e.g. https://shopify.com/authentication/YOUR_SHOP_ID/oauth/authorize), NOT your Netlify app URL.' 
+    }, { status: 500 });
+  }
+
   const url = new URL(request.url);
   
   // Normalize the site URL (add https:// if missing, remove trailing slash)
