@@ -47,11 +47,6 @@ export const useWishlistStore = create<WishlistState>()(
         get().items.some((id) => matchesId(id, productId)),
       toggleItem: async (productId: string) => {
         const loggedIn = get().isLoggedIn || isCustomerLoggedIn();
-        // Strictly require login for wishlist
-        if (!loggedIn) {
-          window.location.href = '/api/auth/login';
-          return false;
-        }
 
         const current = get().items;
         const isCurrentlyAdded = current.some((id) => matchesId(id, productId));
@@ -65,6 +60,11 @@ export const useWishlistStore = create<WishlistState>()(
         // Immediate optimistic update
         set({ items: updated });
         syncCookie(updated);
+
+        if (!loggedIn) {
+          // If guest, local cookie/storage is enough. It will sync on login.
+          return true;
+        }
 
         try {
           const res = await toggleServer(productId, nextAction, updated);
@@ -86,14 +86,14 @@ export const useWishlistStore = create<WishlistState>()(
       },
       removeItem: async (productId: string) => {
         const loggedIn = get().isLoggedIn || isCustomerLoggedIn();
-        if (!loggedIn) {
-          window.location.href = '/api/auth/login';
-          return;
-        }
+
         const current = get().items;
         const updated = current.filter((id) => !matchesId(id, productId));
         set({ items: updated });
         syncCookie(updated);
+
+        if (!loggedIn) return;
+
         try {
           const res = await toggleServer(productId, 'remove', updated);
           if (res && res.success && Array.isArray(res.items)) {

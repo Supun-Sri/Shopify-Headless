@@ -1,18 +1,14 @@
 /**
- * Wishlist Server Persistence — Shopify Customer Metafields
+ * Wishlist & Cart Server Persistence — MongoDB
  *
- * Uses Shopify's Customer Account API to read/write the customer "wishlist"
- * metafield. This persists wishlist data in Shopify itself, surviving across
- * deploys, devices, and browsers.
- *
- * Metafield: namespace="custom", key="wishlist", type="list.collection_reference"
- * (stores an array of product GIDs)
- *
- * Falls back to cookies when the access token is unavailable.
+ * Persists wishlist data and the user's active Cart ID to MongoDB Atlas.
+ * This completely decouples persistence from Shopify's admin API requirements
+ * and works securely across devices.
  */
 
 import { cookies } from 'next/headers';
-import { decodeIdToken, getCustomerGraphQLUrl } from './shopify-customer';
+import { decodeIdToken } from './shopify-customer';
+import { getDb } from './mongodb';
 
 // ─── Customer Key Derivation ─────────────────────────────────────────────────
 
@@ -24,7 +20,7 @@ export function getCustomerKey(idToken?: string): string {
   return 'default';
 }
 
-// ─── Cookie Helpers (fallback) ───────────────────────────────────────────────
+// ─── Cookie Helpers (fallback & sync) ────────────────────────────────────────
 
 function parseCookie(cookieVal?: string): string[] {
   if (!cookieVal) return [];
@@ -71,185 +67,84 @@ async function setCookieWishlist(customerKey: string, items: string[]): Promise<
   }
 }
 
-// ─── Shopify Customer Account API ────────────────────────────────────────────
+// ─── MongoDB Operations ──────────────────────────────────────────────────────
 
-const WISHLIST_READ_QUERY = `
-  query WishlistMetafield {
-    customer {
-      id
-      metafield(namespace: "custom", key: "wishlist") {
-        value
-        type
-      }
-    }
-  }
-`;
-
-const WISHLIST_WRITE_MUTATION = `
-  mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-    metafieldsSet(metafields: $metafields) {
-      metafields {
-        key
-        value
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
-async function getAccessToken(): Promise<string | undefined> {
-  try {
-    const cookieStore = await cookies();
-    return cookieStore.get('customer_access_token')?.value;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Parse metafield value — handles both JSON array and collection reference formats.
- */
-function parseMetafieldValue(value: string | null | undefined): string[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) return parsed.map(String);
-  } catch {}
-  return [];
-}
-
-/**
- * Read the customer's wishlist from Shopify metafield.
- * Falls back to cookies if the API call fails.
- */
-async function readShopifyWishlist(accessToken: string): Promise<{ items: string[]; customerId: string | null }> {
-  try {
-    const endpoint = getCustomerGraphQLUrl();
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': accessToken,
-      },
-      body: JSON.stringify({ query: WISHLIST_READ_QUERY }),
-      cache: 'no-store',
-    });
-
-    if (!res.ok) {
-      console.warn('Shopify wishlist read failed:', res.status);
-      return { items: [], customerId: null };
-    }
-
-    const json = await res.json();
-    const customer = json?.data?.customer;
-    const customerId = customer?.id || null;
-    const metafield = customer?.metafield;
-    const items = parseMetafieldValue(metafield?.value);
-
-    return { items, customerId };
-  } catch (err) {
-    console.warn('Shopify wishlist read error:', err);
-    return { items: [], customerId: null };
-  }
-}
-
-/**
- * Write the customer's wishlist to Shopify metafield.
- */
-async function writeShopifyWishlist(accessToken: string, customerId: string, items: string[]): Promise<boolean> {
-  try {
-    const endpoint = getCustomerGraphQLUrl();
-    const deduped = Array.from(new Set(items));
-    const value = JSON.stringify(deduped);
-
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': accessToken,
-      },
-      body: JSON.stringify({
-        query: WISHLIST_WRITE_MUTATION,
-        variables: {
-          metafields: [{
-            namespace: 'custom',
-            key: 'wishlist',
-            ownerId: customerId,
-            type: 'list.single_line_text_field',
-            value,
-          }],
-        },
-      }),
-      cache: 'no-store',
-    });
-
-    if (!res.ok) {
-      console.warn('Shopify wishlist write failed:', res.status);
-      return false;
-    }
-
-    const json = await res.json();
-    const errors = json?.data?.metafieldsSet?.userErrors;
-    if (errors && errors.length > 0) {
-      console.warn('Shopify wishlist write errors:', errors);
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.warn('Shopify wishlist write error:', err);
-    return false;
-  }
-}
-
-// ─── Public API ──────────────────────────────────────────────────────────────
-
-/**
- * Get the stored wishlist. Tries Shopify metafield first, falls back to cookies.
- */
 export async function getStoredWishlist(customerKey: string): Promise<string[]> {
   if (!customerKey || customerKey === 'default') return [];
 
-  const accessToken = await getAccessToken();
-  if (accessToken) {
-    const { items: shopifyItems } = await readShopifyWishlist(accessToken);
+  try {
+    if (!process.env.MONGODB_URI) throw new Error('No Mongo URI');
+    const db = await getDb();
+    const doc = await db.collection('customers').findOne({ _id: customerKey as any });
+    
+    const dbItems = doc?.wishlist || [];
     const cookieItems = await getCookieWishlist(customerKey);
 
-    // Merge Shopify + cookie items (cookie may have items not yet synced)
-    const merged = Array.from(new Set([...shopifyItems, ...cookieItems]));
+    // Merge both sources so nothing is lost
+    const merged = Array.from(new Set([...dbItems, ...cookieItems]));
 
-    // If cookie had items not in Shopify, sync them up
-    if (merged.length > shopifyItems.length) {
+    // If cookie had items not yet in the DB, sync them up to the DB
+    if (merged.length > dbItems.length) {
+      await saveStoredWishlist(customerKey, merged);
+    } else if (merged.length > cookieItems.length) {
+      // If DB had items not in the cookie, sync them down to the cookie
       await setCookieWishlist(customerKey, merged);
     }
 
     return merged;
+  } catch (err) {
+    console.warn('MongoDB read failed, falling back to cookies:', err);
+    return getCookieWishlist(customerKey);
   }
-
-  // Fallback: cookie-only
-  return getCookieWishlist(customerKey);
 }
 
-/**
- * Save the wishlist. Writes to Shopify metafield AND cookies.
- */
 export async function saveStoredWishlist(customerKey: string, items: string[]): Promise<void> {
   if (!customerKey || customerKey === 'default') return;
 
   const deduped = Array.from(new Set(items));
-
-  // Always save to cookies (fast fallback)
+  
+  // Always update cookies for fast UI rendering
   await setCookieWishlist(customerKey, deduped);
 
-  // Try to persist to Shopify metafield
-  const accessToken = await getAccessToken();
-  if (accessToken) {
-    const { customerId } = await readShopifyWishlist(accessToken);
-    if (customerId) {
-      await writeShopifyWishlist(accessToken, customerId, deduped);
-    }
+  // Persist to MongoDB
+  try {
+    if (!process.env.MONGODB_URI) return;
+    const db = await getDb();
+    await db.collection('customers').updateOne(
+      { _id: customerKey as any },
+      { $set: { wishlist: deduped, updatedAt: new Date() } },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.error('MongoDB write failed:', err);
+  }
+}
+
+// ─── Cart Persistence (MongoDB) ──────────────────────────────────────────────
+
+export async function getStoredCartId(customerKey: string): Promise<string | null> {
+  if (!customerKey || customerKey === 'default') return null;
+  try {
+    if (!process.env.MONGODB_URI) return null;
+    const db = await getDb();
+    const doc = await db.collection('customers').findOne({ _id: customerKey as any });
+    return doc?.cartId || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveStoredCartId(customerKey: string, cartId: string): Promise<void> {
+  if (!customerKey || customerKey === 'default' || !cartId) return;
+  try {
+    if (!process.env.MONGODB_URI) return;
+    const db = await getDb();
+    await db.collection('customers').updateOne(
+      { _id: customerKey as any },
+      { $set: { cartId, cartUpdatedAt: new Date() } },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.error('Failed to save cart ID to MongoDB:', err);
   }
 }

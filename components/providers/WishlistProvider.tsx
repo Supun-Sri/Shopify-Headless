@@ -34,8 +34,7 @@ export default function WishlistProvider({
         setItems(merged);
         setServerSynced(true);
       } else if (!isLoggedIn) {
-        // Not logged in — clear wishlist state
-        useWishlistStore.setState({ items: [], isLoggedIn: false });
+        // Not logged in — just keep whatever is currently in localStorage
         setServerSynced(false);
       }
     }

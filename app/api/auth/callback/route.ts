@@ -116,15 +116,33 @@ export async function GET(request: Request) {
       sameSite: 'lax',
     });
 
-    // Associate existing Shopify cart with the authenticated customer
+    // Associate existing Shopify cart with the authenticated customer, and sync with MongoDB
     try {
-      const cartIdCookie = cookieStore.get('cart_id')?.value;
-      if (cartIdCookie && data.access_token) {
-        const { updateCartBuyerIdentity } = await import('@/lib/shopify-api');
-        await updateCartBuyerIdentity(cartIdCookie, data.access_token);
+      const { getCustomerKey, saveStoredCartId, getStoredCartId } = await import('@/lib/wishlist-server');
+      const customerKey = getCustomerKey(data.id_token);
+      
+      const localCartId = cookieStore.get('cart_id')?.value;
+      const dbCartId = await getStoredCartId(customerKey);
+      
+      if (localCartId) {
+        // User has an active local cart, associate it with their account
+        if (data.access_token) {
+          const { updateCartBuyerIdentity } = await import('@/lib/shopify-api');
+          await updateCartBuyerIdentity(localCartId, data.access_token);
+        }
+        // Save to MongoDB
+        await saveStoredCartId(customerKey, localCartId);
+      } else if (dbCartId) {
+        // User doesn't have a local cart, but has one in DB — restore it
+        cookieStore.set('cart_id', dbCartId, {
+          path: '/',
+          maxAge: 60 * 60 * 24 * 365,
+          sameSite: 'lax',
+          httpOnly: false,
+        });
       }
     } catch (err) {
-      console.warn('Could not associate cart with customer:', err);
+      console.warn('Could not sync cart with MongoDB:', err);
     }
 
     // Clean up PKCE cookies
