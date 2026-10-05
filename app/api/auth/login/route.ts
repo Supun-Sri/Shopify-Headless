@@ -21,13 +21,17 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   // Use a stable site URL for the redirect URI to avoid Netlify deploy preview mismatches.
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin;
+  const siteOrigin = (process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || url.origin).replace(/\/$/, '');
 
   // If the user is on a deploy preview (different domain), redirect them to the
   // stable domain's login route first. This ensures auth cookies are set on the
   // same domain that will receive the OAuth callback.
-  if (siteOrigin && url.origin !== siteOrigin) {
-    return NextResponse.redirect(`${siteOrigin}/api/auth/login`);
+  // Guard against redirect loops: only redirect if the origins truly differ.
+  const currentOrigin = url.origin.replace(/\/$/, '');
+  if (siteOrigin && currentOrigin !== siteOrigin && !url.searchParams.has('redirected')) {
+    const targetUrl = new URL(`${siteOrigin}/api/auth/login`);
+    targetUrl.searchParams.set('redirected', '1');
+    return NextResponse.redirect(targetUrl.toString());
   }
 
   // 1. Generate state and nonce
