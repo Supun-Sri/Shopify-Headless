@@ -19,7 +19,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; auth?: string }>;
 }) {
   const params = await searchParams;
   const { isLoggedIn, customer } = await getCustomerAccountData();
@@ -60,6 +60,16 @@ export default async function AccountPage({
   }
 
   if (!isLoggedIn || !customer) {
+    if (params.auth === 'success') {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <h2>Login flow completed, but session is missing!</h2>
+          <p>The OAuth flow succeeded, but your browser dropped the secure cookies, or Shopify failed to return profile data.</p>
+          <p>Please check if third-party cookies are blocked, or clear your cache.</p>
+          <a href="/api/auth/login" className="btn primary">Try Again</a>
+        </div>
+      );
+    }
     redirect('/api/auth/login');
   }
 

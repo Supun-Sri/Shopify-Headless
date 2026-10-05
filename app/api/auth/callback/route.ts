@@ -51,7 +51,9 @@ export async function GET(request: Request) {
 
     const data = await tokenResponse.json();
     
-    const response = NextResponse.redirect(new URL('/account', url.origin));
+    // Append auth=success so middleware knows not to immediately bounce the user,
+    // breaking any potential infinite loops while cookies settle.
+    const response = NextResponse.redirect(new URL('/account?auth=success', url.origin));
     const isProduction = process.env.NODE_ENV === 'production';
     const tokenExpiry = data.expires_in || 3600;
     
@@ -152,7 +154,37 @@ export async function GET(request: Request) {
     response.cookies.delete('shopify_auth_nonce');
     response.cookies.delete('shopify_auth_code_verifier');
 
-    return response;
+    // Return a 200 HTML response that performs a client-side redirect.
+    // This is CRITICAL for Incognito mode and Safari ITP, which aggressively strip
+    // Set-Cookie headers from cross-site 302 redirect responses.
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta http-equiv="refresh" content="0;url=/account?auth=success">
+          <title>Authenticating...</title>
+        </head>
+        <body style="background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif;">
+          <p>Securely logging you in...</p>
+          <script>
+            setTimeout(() => { window.location.href = '/account?auth=success'; }, 100);
+          </script>
+        </body>
+      </html>
+    `;
+
+    const htmlResponse = new NextResponse(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
+
+    // Copy all cookies from the redirect response to the HTML response
+    const cookiesToSet = response.headers.getSetCookie();
+    for (const cookieHeader of cookiesToSet) {
+      htmlResponse.headers.append('Set-Cookie', cookieHeader);
+    }
+
+    return htmlResponse;
   } catch (error) {
     console.error('Callback error:', error);
     return NextResponse.redirect(new URL('/account?error=server_error', url.origin));

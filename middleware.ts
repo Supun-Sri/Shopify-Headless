@@ -14,7 +14,9 @@ export function middleware(request: NextRequest) {
   // navigation. Redirecting them breaks client-side nav with "Failed to fetch RSC payload".
   const isRscRequest = request.headers.get('RSC') === '1'
     || request.headers.get('Next-Router-State-Tree') !== null
-    || request.headers.get('Next-Router-Prefetch') !== null;
+    || request.headers.get('Next-Router-Prefetch') !== null
+    || searchParams.has('_rsc');
+  
   if (isRscRequest) {
     return NextResponse.next();
   }
@@ -25,7 +27,7 @@ export function middleware(request: NextRequest) {
     const refreshToken = request.cookies.get('customer_refresh_token')?.value;
     const loggedInIndicator = request.cookies.get('customer_logged_in')?.value;
 
-    if (searchParams.has('error')) {
+    if (searchParams.has('error') || searchParams.has('auth')) {
       return NextResponse.next();
     }
 
@@ -40,12 +42,16 @@ export function middleware(request: NextRequest) {
     }
 
     if (loggedInIndicator) {
-      const redirectResponse = NextResponse.redirect(new URL('/api/auth/login', request.url));
+      const loginUrl = new URL('/api/auth/login', request.url);
+      loginUrl.searchParams.set('reason', 'token_missing');
+      const redirectResponse = NextResponse.redirect(loginUrl);
       redirectResponse.cookies.delete('customer_logged_in');
       return redirectResponse;
     }
 
-    return NextResponse.redirect(new URL('/api/auth/login', request.url));
+    const loginUrl = new URL('/api/auth/login', request.url);
+    loginUrl.searchParams.set('reason', 'unauthenticated');
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

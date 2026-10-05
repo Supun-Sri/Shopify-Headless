@@ -54,11 +54,6 @@ export async function GET(request: Request) {
   const codeVerifier = generateRandomString(64);
   const codeChallenge = generateCodeChallenge(codeVerifier);
   
-  const cookieStore = await cookies();
-  cookieStore.set('shopify_auth_state', state, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
-  cookieStore.set('shopify_auth_nonce', nonce, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
-  cookieStore.set('shopify_auth_code_verifier', codeVerifier, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
-
   const redirectUri = `${siteOrigin}/api/auth/callback`;
 
   // Shopify Customer Account Authorization Endpoint
@@ -66,12 +61,20 @@ export async function GET(request: Request) {
   authorizationUrl.searchParams.append('client_id', clientId);
   authorizationUrl.searchParams.append('response_type', 'code');
   authorizationUrl.searchParams.append('redirect_uri', redirectUri);
-  // Using standard OIDC scopes for Customer Account API
   authorizationUrl.searchParams.append('scope', 'openid email');
   authorizationUrl.searchParams.append('state', state);
   authorizationUrl.searchParams.append('nonce', nonce);
   authorizationUrl.searchParams.append('code_challenge', codeChallenge);
   authorizationUrl.searchParams.append('code_challenge_method', 'S256');
 
-  return NextResponse.redirect(authorizationUrl.toString());
+  const response = NextResponse.redirect(authorizationUrl.toString());
+  
+  // Set PKCE cookies directly on the response to ensure they are never dropped
+  response.cookies.set('shopify_auth_state', state, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
+  response.cookies.set('shopify_auth_nonce', nonce, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
+  response.cookies.set('shopify_auth_code_verifier', codeVerifier, { httpOnly: true, secure: true, maxAge: 60 * 10, path: '/', sameSite: 'lax' });
+
+  return response;
+
+
 }
