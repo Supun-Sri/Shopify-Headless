@@ -43,6 +43,7 @@ export async function GET() {
       { 
         error: 'MongoDB connection failed.', 
         message: error.message,
+        stack: error.stack,
         hint: 'Did you allow access from anywhere (0.0.0.0/0) in MongoDB Atlas Network Access?'
       },
       { status: 500 }

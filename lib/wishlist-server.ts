@@ -15,8 +15,8 @@ import { getDb } from './mongodb';
 export function getCustomerKey(idToken?: string): string {
   if (!idToken) return 'default';
   const decoded = decodeIdToken(idToken);
-  if (decoded?.sub) return decoded.sub.replace(/[^a-zA-Z0-9]/g, '_');
-  if (decoded?.email) return decoded.email.replace(/[^a-zA-Z0-9]/g, '_');
+  if (decoded?.sub) return String(decoded.sub).replace(/[^a-zA-Z0-9]/g, '_');
+  if (decoded?.email) return String(decoded.email).replace(/[^a-zA-Z0-9]/g, '_');
   return 'default';
 }
 
