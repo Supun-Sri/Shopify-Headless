@@ -51,12 +51,13 @@ export async function GET(request: Request) {
 
     const data = await tokenResponse.json();
     
+    const response = NextResponse.redirect(new URL('/account', url.origin));
     const isProduction = process.env.NODE_ENV === 'production';
     const tokenExpiry = data.expires_in || 3600;
     
     // Store access_token
     if (data.access_token) {
-      cookieStore.set('customer_access_token', data.access_token, {
+      response.cookies.set('customer_access_token', data.access_token, {
         httpOnly: true,
         secure: isProduction,
         maxAge: tokenExpiry,
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
     
     // Store id_token
     if (data.id_token) {
-      cookieStore.set('customer_id_token', data.id_token, {
+      response.cookies.set('customer_id_token', data.id_token, {
         httpOnly: true,
         secure: isProduction,
         maxAge: tokenExpiry,
@@ -82,13 +83,13 @@ export async function GET(request: Request) {
         const saved = await getStoredWishlist(customerKey);
         if (saved && saved.length > 0) {
           const serialized = JSON.stringify(saved);
-          cookieStore.set('wishlist_items', serialized, {
+          response.cookies.set('wishlist_items', serialized, {
             path: '/',
             maxAge: 60 * 60 * 24 * 365,
             sameSite: 'lax',
             httpOnly: false,
           });
-          cookieStore.set('customer_wishlist_' + customerKey, serialized, {
+          response.cookies.set('customer_wishlist_' + customerKey, serialized, {
             path: '/',
             maxAge: 60 * 60 * 24 * 365,
             sameSite: 'lax',
@@ -102,7 +103,7 @@ export async function GET(request: Request) {
 
     // Store refresh_token if provided by Shopify (for session renewal)
     if (data.refresh_token) {
-      cookieStore.set('customer_refresh_token', data.refresh_token, {
+      response.cookies.set('customer_refresh_token', data.refresh_token, {
         httpOnly: true,
         secure: isProduction,
         maxAge: 60 * 60 * 24 * 30, // 30 days
@@ -112,7 +113,7 @@ export async function GET(request: Request) {
     }
 
     // Set client-accessible auth indicator cookie
-    cookieStore.set('customer_logged_in', '1', {
+    response.cookies.set('customer_logged_in', '1', {
       httpOnly: false,
       secure: isProduction,
       maxAge: tokenExpiry,
@@ -129,16 +130,13 @@ export async function GET(request: Request) {
       const dbCartId = await getStoredCartId(customerKey);
       
       if (localCartId) {
-        // User has an active local cart, associate it with their account
         if (data.access_token) {
           const { updateCartBuyerIdentity } = await import('@/lib/shopify-api');
           await updateCartBuyerIdentity(localCartId, data.access_token);
         }
-        // Save to MongoDB
         await saveStoredCartId(customerKey, localCartId);
       } else if (dbCartId) {
-        // User doesn't have a local cart, but has one in DB — restore it
-        cookieStore.set('cart_id', dbCartId, {
+        response.cookies.set('cart_id', dbCartId, {
           path: '/',
           maxAge: 60 * 60 * 24 * 365,
           sameSite: 'lax',
@@ -150,11 +148,11 @@ export async function GET(request: Request) {
     }
 
     // Clean up PKCE cookies
-    cookieStore.delete('shopify_auth_state');
-    cookieStore.delete('shopify_auth_nonce');
-    cookieStore.delete('shopify_auth_code_verifier');
+    response.cookies.delete('shopify_auth_state');
+    response.cookies.delete('shopify_auth_nonce');
+    response.cookies.delete('shopify_auth_code_verifier');
 
-    return NextResponse.redirect(new URL('/account', url.origin));
+    return response;
   } catch (error) {
     console.error('Callback error:', error);
     return NextResponse.redirect(new URL('/account?error=server_error', url.origin));
