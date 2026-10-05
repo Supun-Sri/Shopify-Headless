@@ -73,11 +73,18 @@ export async function getStoredWishlist(customerKey: string): Promise<string[]> 
   if (!customerKey || customerKey === 'default') return [];
 
   try {
-    if (!process.env.MONGODB_URI) throw new Error('No Mongo URI');
+    if (!process.env.MONGODB_URI) {
+      console.warn('[MongoDB] Skipped read: MONGODB_URI is not set. Falling back to cookies.');
+      return getCookieWishlist(customerKey);
+    }
+    
+    console.log(`[MongoDB] Fetching wishlist for customer: ${customerKey}`);
     const db = await getDb();
     const doc = await db.collection('customers').findOne({ _id: customerKey as any });
     
     const dbItems = doc?.wishlist || [];
+    console.log(`[MongoDB] Found ${dbItems.length} wishlist items in DB for ${customerKey}`);
+    
     const cookieItems = await getCookieWishlist(customerKey);
 
     // Merge both sources so nothing is lost
@@ -85,6 +92,7 @@ export async function getStoredWishlist(customerKey: string): Promise<string[]> 
 
     // If cookie had items not yet in the DB, sync them up to the DB
     if (merged.length > dbItems.length) {
+      console.log(`[MongoDB] Syncing ${merged.length - dbItems.length} new cookie items up to DB.`);
       await saveStoredWishlist(customerKey, merged);
     } else if (merged.length > cookieItems.length) {
       // If DB had items not in the cookie, sync them down to the cookie
@@ -93,7 +101,7 @@ export async function getStoredWishlist(customerKey: string): Promise<string[]> 
 
     return merged;
   } catch (err) {
-    console.warn('MongoDB read failed, falling back to cookies:', err);
+    console.warn('[MongoDB] Read failed, falling back to cookies:', err);
     return getCookieWishlist(customerKey);
   }
 }
@@ -108,15 +116,21 @@ export async function saveStoredWishlist(customerKey: string, items: string[]): 
 
   // Persist to MongoDB
   try {
-    if (!process.env.MONGODB_URI) return;
+    if (!process.env.MONGODB_URI) {
+      console.warn('[MongoDB] Skipped write: MONGODB_URI is not set.');
+      return;
+    }
+    
+    console.log(`[MongoDB] Upserting wishlist (${deduped.length} items) for customer: ${customerKey}`);
     const db = await getDb();
-    await db.collection('customers').updateOne(
+    const result = await db.collection('customers').updateOne(
       { _id: customerKey as any },
       { $set: { wishlist: deduped, updatedAt: new Date() } },
       { upsert: true }
     );
+    console.log(`[MongoDB] Upsert successful! Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`);
   } catch (err) {
-    console.error('MongoDB write failed:', err);
+    console.error('[MongoDB] Write failed:', err);
   }
 }
 
@@ -128,8 +142,12 @@ export async function getStoredCartId(customerKey: string): Promise<string | nul
     if (!process.env.MONGODB_URI) return null;
     const db = await getDb();
     const doc = await db.collection('customers').findOne({ _id: customerKey as any });
+    if (doc?.cartId) {
+      console.log(`[MongoDB] Retrieved saved cart ID for ${customerKey}`);
+    }
     return doc?.cartId || null;
-  } catch {
+  } catch (err) {
+    console.error('[MongoDB] Cart read failed:', err);
     return null;
   }
 }
@@ -137,14 +155,20 @@ export async function getStoredCartId(customerKey: string): Promise<string | nul
 export async function saveStoredCartId(customerKey: string, cartId: string): Promise<void> {
   if (!customerKey || customerKey === 'default' || !cartId) return;
   try {
-    if (!process.env.MONGODB_URI) return;
+    if (!process.env.MONGODB_URI) {
+      console.warn('[MongoDB] Skipped cart write: MONGODB_URI is not set.');
+      return;
+    }
+    
+    console.log(`[MongoDB] Saving active cart ID for customer: ${customerKey}`);
     const db = await getDb();
     await db.collection('customers').updateOne(
       { _id: customerKey as any },
       { $set: { cartId, cartUpdatedAt: new Date() } },
       { upsert: true }
     );
+    console.log(`[MongoDB] Cart ID saved successfully!`);
   } catch (err) {
-    console.error('Failed to save cart ID to MongoDB:', err);
+    console.error('[MongoDB] Failed to save cart ID:', err);
   }
 }
