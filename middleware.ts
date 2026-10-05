@@ -10,6 +10,15 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
+  // Skip RSC flight requests — these are internal Next.js fetches for client-side
+  // navigation. Redirecting them breaks client-side nav with "Failed to fetch RSC payload".
+  const isRscRequest = request.headers.get('RSC') === '1'
+    || request.headers.get('Next-Router-State-Tree') !== null
+    || request.headers.get('Next-Router-Prefetch') !== null;
+  if (isRscRequest) {
+    return NextResponse.next();
+  }
+
   const accessToken = request.cookies.get('customer_access_token')?.value;
   const refreshToken = request.cookies.get('customer_refresh_token')?.value;
   const loggedInIndicator = request.cookies.get('customer_logged_in')?.value;
@@ -32,8 +41,8 @@ export function middleware(request: NextRequest) {
     if (!isNaN(visitDate) && now - visitDate > SIX_MONTHS_MS) {
       // If 6 months passed and NOT logged in
       if (!accessToken && !refreshToken && !loggedInIndicator) {
-        // Prevent redirect loops by only redirecting if not already going to auth
-        if (!pathname.startsWith('/api/auth') && !pathname.startsWith('/account')) {
+        // Prevent redirect loops by only redirecting if not already going to auth or API
+        if (!pathname.startsWith('/api/') && !pathname.startsWith('/account')) {
           const authUrl = new URL('/api/auth/login', request.url);
           return NextResponse.redirect(authUrl);
         }
