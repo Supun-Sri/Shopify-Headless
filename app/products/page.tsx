@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { getAllProducts, getCollectionProducts, getProductFilters } from '@/lib/shopify-api';
-import type { SortKey } from '@/lib/types';
+import type { CollectionSortKey, SortKey } from '@/lib/types';
+import { buildCollectionFallbackQuery } from '@/lib/utils';
+import { planProductSearch } from '@/lib/product-search';
 import ProductCard from '@/components/products/ProductCard';
 import PLPFilters from '@/components/products/PLPFilters';
 import PLPToolbar from '@/components/products/PLPToolbar';
@@ -29,13 +31,30 @@ interface PageProps {
   }>;
 }
 
-function getSortVariables(sort?: string): { sortKey: SortKey; reverse: boolean } {
+/**
+ * Map UI sort params to Shopify sort keys.
+ * Collection queries use ProductCollectionSortKeys (CREATED, not CREATED_AT;
+ * RELEVANCE is invalid without a search query — use COLLECTION_DEFAULT / BEST_SELLING).
+ */
+function getSortVariables(
+  sort?: string,
+  forCollection = false,
+  hasSearchQuery = false
+): { sortKey: SortKey | CollectionSortKey; reverse: boolean } {
   switch (sort) {
-    case 'price-asc': return { sortKey: 'PRICE', reverse: false };
-    case 'price-desc': return { sortKey: 'PRICE', reverse: true };
-    case 'newest': return { sortKey: 'CREATED_AT', reverse: true };
-    case 'best-selling': return { sortKey: 'BEST_SELLING', reverse: false };
-    default: return { sortKey: 'RELEVANCE', reverse: false };
+    case 'price-asc':
+      return { sortKey: 'PRICE', reverse: false };
+    case 'price-desc':
+      return { sortKey: 'PRICE', reverse: true };
+    case 'newest':
+      return { sortKey: forCollection ? 'CREATED' : 'CREATED_AT', reverse: true };
+    case 'best-selling':
+      return { sortKey: 'BEST_SELLING', reverse: false };
+    default:
+      // RELEVANCE is valid with a search query; never use it on bare collection queries
+      if (forCollection) return { sortKey: 'COLLECTION_DEFAULT', reverse: false };
+      if (hasSearchQuery) return { sortKey: 'RELEVANCE', reverse: false };
+      return { sortKey: 'BEST_SELLING', reverse: false };
   }
 }
 
@@ -60,21 +79,41 @@ function ProductGridSkeleton() {
   );
 }
 
+function buildFilterParts(opts: {
+  vendor?: string;
+  type?: string;
+  tags?: string[];
+  minPrice?: string;
+  maxPrice?: string;
+}): string[] {
+  const parts: string[] = [];
+  if (opts.vendor) parts.push(`vendor:"${opts.vendor}"`);
+  if (opts.type) parts.push(`product_type:"${opts.type}"`);
+  if (opts.tags && opts.tags.length > 0) {
+    opts.tags.forEach((tag) => parts.push(`tag:"${tag}"`));
+  }
+  if (opts.minPrice) parts.push(`variants.price:>=${opts.minPrice}`);
+  if (opts.maxPrice) parts.push(`variants.price:<=${opts.maxPrice}`);
+  return parts;
+}
+
 async function ProductGrid({
   sort, q, minPrice, maxPrice, collection, vendor, type, tags, after, baseParams, pageNum,
+  searchDict,
 }: {
   sort?: string; q?: string; minPrice?: string; maxPrice?: string;
   collection?: string; vendor?: string; type?: string; tags?: string[];
   after?: string;
   baseParams: Record<string, string | undefined>;
   pageNum: number;
+  searchDict: string[];
 }) {
   try {
-    const { sortKey, reverse } = getSortVariables(sort);
     let products;
     let pageInfo: { hasNextPage: boolean; endCursor: string | null };
 
     if (collection) {
+      const { sortKey, reverse } = getSortVariables(sort, true, Boolean(q));
       const result = await getCollectionProducts(collection, {
         first: PRODUCTS_PER_PAGE,
         after,
@@ -84,34 +123,72 @@ async function ProductGrid({
       products = result.products;
       pageInfo = result.pageInfo;
 
-      // Client-side filters when browsing a collection
-      if (vendor) products = products.filter((p) => p.vendor === vendor);
-      if (type) products = products.filter((p) => p.productType === type);
-      if (tags && tags.length > 0) {
-        products = products.filter((p) => tags.every((t) => p.tags.includes(t)));
+      // Shopify collections in this store are often empty shells — products are
+      // categorized by productType instead. Fall back to a type/title search.
+      if (products.length === 0) {
+        const searchPlan = q ? planProductSearch(q, searchDict) : null;
+        const { sortKey: productSortKey, reverse: productReverse } = getSortVariables(
+          sort,
+          false,
+          Boolean(q)
+        );
+        const queryParts: string[] = [`(${buildCollectionFallbackQuery(collection)})`];
+        queryParts.push(...buildFilterParts({ vendor, type, tags, minPrice, maxPrice }));
+        if (searchPlan) queryParts.push(searchPlan.primary);
+
+        const fallback = await getAllProducts({
+          first: PRODUCTS_PER_PAGE,
+          after,
+          sortKey: productSortKey,
+          reverse: productReverse,
+          query: queryParts.join(' AND '),
+        });
+        products = fallback.products;
+        pageInfo = fallback.pageInfo;
+      } else {
+        // Client-side filters when using real collection membership
+        if (vendor) products = products.filter((p) => p.vendor === vendor);
+        if (type) products = products.filter((p) => p.productType === type);
+        if (tags && tags.length > 0) {
+          products = products.filter((p) => tags.every((t) => p.tags.includes(t)));
+        }
+        if (minPrice) products = products.filter((p) => parseFloat(p.priceRange.minVariantPrice.amount) >= parseFloat(minPrice));
+        if (maxPrice) products = products.filter((p) => parseFloat(p.priceRange.minVariantPrice.amount) <= parseFloat(maxPrice));
       }
-      if (minPrice) products = products.filter((p) => parseFloat(p.priceRange.minVariantPrice.amount) >= parseFloat(minPrice));
-      if (maxPrice) products = products.filter((p) => parseFloat(p.priceRange.minVariantPrice.amount) <= parseFloat(maxPrice));
     } else {
-      const queryParts: string[] = [];
-      if (q) queryParts.push(`title:${q}*`);
-      if (vendor) queryParts.push(`vendor:"${vendor}"`);
-      if (type) queryParts.push(`product_type:"${type}"`);
-      if (tags && tags.length > 0) {
-        tags.forEach((tag) => queryParts.push(`tag:"${tag}"`));
-      }
-      if (minPrice) queryParts.push(`variants.price:>=${minPrice}`);
-      if (maxPrice) queryParts.push(`variants.price:<=${maxPrice}`);
-      const finalQuery = queryParts.length > 0 ? queryParts.join(' AND ') : undefined;
+      const searchPlan = q ? planProductSearch(q, searchDict) : null;
+      const { sortKey, reverse } = getSortVariables(sort, false, Boolean(searchPlan));
+      const filterParts = buildFilterParts({ vendor, type, tags, minPrice, maxPrice });
+
+      const primaryQuery = searchPlan
+        ? [...filterParts, searchPlan.primary].join(' AND ')
+        : filterParts.length > 0
+          ? filterParts.join(' AND ')
+          : undefined;
+
       const result = await getAllProducts({
         first: PRODUCTS_PER_PAGE,
         after,
         sortKey,
         reverse,
-        query: finalQuery,
+        query: primaryQuery,
       });
       products = result.products;
       pageInfo = result.pageInfo;
+
+      // Typo / sparse match: retry with a looser clause when primary is empty
+      // (skip when paginating — cursor belongs to the primary result set)
+      if (products.length === 0 && searchPlan && !after) {
+        const looseQuery = [...filterParts, searchPlan.loose].join(' AND ');
+        const loose = await getAllProducts({
+          first: PRODUCTS_PER_PAGE,
+          sortKey,
+          reverse,
+          query: looseQuery,
+        });
+        products = loose.products;
+        pageInfo = loose.pageInfo;
+      }
     }
 
     if (products.length === 0) {
@@ -228,10 +305,26 @@ export default async function ProductsPage({ searchParams }: PageProps) {
     getProductFilters(params.collection),
   ]);
 
+  // Live catalog terms help fuzzy-correct typos (e.g. "adheisive" → adhesives type)
+  const searchDict = [
+    ...filters.productTypes,
+    ...filters.vendors,
+    ...filters.tags,
+  ];
+
+  const searchPlan = params.q ? planProductSearch(params.q, searchDict) : null;
   const collectionTitle = params.collection
     ? params.collection.charAt(0).toUpperCase() + params.collection.slice(1).replace(/-/g, ' ')
+    : params.type
+    ? params.type
+        .toLowerCase()
+        .split(' ')
+        .map((w) => (w === '&' ? '&' : w.charAt(0).toUpperCase() + w.slice(1)))
+        .join(' ')
     : params.q
-    ? `Search: "${params.q}"`
+    ? searchPlan && searchPlan.corrected !== params.q.trim().toLowerCase()
+      ? `Search: "${params.q}" → ${searchPlan.corrected}`
+      : `Search: "${params.q}"`
     : 'All Products';
 
   // Snapshot of all current search params (excluding `after` — handled separately by pagination links)
@@ -254,7 +347,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
       {/* Breadcrumb */}
       <div className="breadcrumb">
         <Link href="/">Home</Link>
-        {params.collection ? (
+        {params.collection || params.type ? (
           <>
             {' / '}
             <Link href="/products">Products</Link>
@@ -295,6 +388,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
               after={params.after}
               baseParams={baseParams}
               pageNum={pageNum}
+              searchDict={searchDict}
             />
           </Suspense>
         </main>

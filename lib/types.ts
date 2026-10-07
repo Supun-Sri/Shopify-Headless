@@ -129,10 +129,21 @@ export interface ShopifyProductRaw {
 
 export type SortKey = 'TITLE' | 'PRICE' | 'BEST_SELLING' | 'CREATED_AT' | 'RELEVANCE';
 
+/** Sort keys valid for collection product queries (ProductCollectionSortKeys) */
+export type CollectionSortKey =
+  | 'TITLE'
+  | 'PRICE'
+  | 'BEST_SELLING'
+  | 'CREATED'
+  | 'COLLECTION_DEFAULT'
+  | 'MANUAL'
+  | 'ID'
+  | 'RELEVANCE';
+
 export interface ProductsQueryVariables {
   first?: number;
   after?: string;
-  sortKey?: SortKey;
+  sortKey?: SortKey | CollectionSortKey;
   reverse?: boolean;
   query?: string;
 }

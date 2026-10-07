@@ -87,3 +87,23 @@ export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength).trim() + '…';
 }
+
+/**
+ * Build a Storefront product search query for when a Shopify collection
+ * has no assigned products. Matches product types / titles by handle stem
+ * (e.g. "adhesive" → ADHESIVES, TILE ADHESIVES & GROUTS).
+ */
+export function buildCollectionFallbackQuery(handle: string): string {
+  const normalized = handle
+    .toLowerCase()
+    .replace(/-/g, ' ')
+    .replace(/\bsealent\b/g, 'sealant') // common store typo
+    .trim();
+
+  const stem = normalized.split(/\s+/)[0] || normalized;
+  const typePrefix = stem.toUpperCase();
+
+  // Prefix match on product_type covers plural forms (ADHESIVE* → ADHESIVES)
+  // Title match covers related items when type names differ (e.g. bonding)
+  return `product_type:${typePrefix}* OR title:${stem}*`;
+}

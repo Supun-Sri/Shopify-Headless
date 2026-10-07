@@ -6,20 +6,26 @@ import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '@/lib/cart-store';
 import { useWishlistStore } from '@/lib/wishlist-store';
 import { useVatStore } from '@/lib/vat-store';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import type { ShopifyCollection } from '@/lib/types';
+import SearchAutocomplete from '@/components/search/SearchAutocomplete';
 
 type MegaMenuKey = 'collections' | 'brands' | 'about' | null;
 
 interface Props {
   collections: ShopifyCollection[];
   vendors?: string[];
+  /** When true, collection items link to ?type= (product types) instead of ?collection= */
+  useTypeLinks?: boolean;
 }
 
-export default function HeaderClient({ collections, vendors = [] }: Props) {
+export default function HeaderClient({ collections, vendors = [], useTypeLinks = false }: Props) {
+  const collectionHref = (handle: string) =>
+    useTypeLinks
+      ? `/products?type=${encodeURIComponent(handle)}`
+      : `/products?collection=${encodeURIComponent(handle)}`;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [openMenu, setOpenMenu] = useState<MegaMenuKey>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const totalQuantity = useCartStore((s) => s.totalQuantity());
@@ -30,7 +36,6 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
   const isVatInclusive = useVatStore((s) => s.isVatInclusive);
   const setVatInclusive = useVatStore((s) => s.setVatInclusive);
 
-  const router = useRouter();
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
 
@@ -66,15 +71,6 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
       document.body.style.overflow = '';
     };
   }, [mobileMenuOpen]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setOpenMenu(null);
-      setMobileSearchOpen(false);
-      router.push(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   const displayQuantity = mounted ? totalQuantity : 0;
 
@@ -143,22 +139,13 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           />
         </Link>
 
-        <form className={`searchbar ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search">
-          <input
-            type="search"
-            placeholder="Search products, brands, categories..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search products"
-          />
-          <button type="submit" aria-label="Search">
-            <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7"/>
-              <path d="m16.5 16.5 4.5 4.5"/>
-            </svg>
-            Search
-          </button>
-        </form>
+        <SearchAutocomplete
+          mobileOpen={mobileSearchOpen}
+          onNavigate={() => {
+            setOpenMenu(null);
+            setMobileSearchOpen(false);
+          }}
+        />
 
         <div className="headericons">
           <button
@@ -344,7 +331,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
                     {col1.map((col) => (
                       <Link
                         key={col.id}
-                        href={`/products?collection=${col.handle}`}
+                        href={collectionHref(col.handle)}
                         role="menuitem"
                         onClick={() => setOpenMenu(null)}
                       >
@@ -358,7 +345,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
                     {col2.map((col) => (
                       <Link
                         key={col.id}
-                        href={`/products?collection=${col.handle}`}
+                        href={collectionHref(col.handle)}
                         role="menuitem"
                         onClick={() => setOpenMenu(null)}
                       >
@@ -463,7 +450,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           {collections.slice(0, 8).map((col) => (
             <Link
               key={col.id}
-              href={`/products?collection=${col.handle}`}
+              href={collectionHref(col.handle)}
               className="mobile-nav-link"
               onClick={() => setMobileMenuOpen(false)}
             >
