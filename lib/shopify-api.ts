@@ -22,7 +22,7 @@ import type {
   ShopifyConnection,
   ProductsQueryVariables,
 } from './types';
-import { flattenConnection } from './utils';
+import { buildCollectionFallbackQuery, flattenConnection } from './utils';
 
 // ─── Product Helpers ─────────────────────────────────────────────────────────
 
@@ -115,7 +115,10 @@ export interface ProductFilters {
 
 export async function getProductFilters(collectionHandle?: string): Promise<ProductFilters> {
   try {
-    const query = collectionHandle ? `collection:${collectionHandle}` : undefined;
+    // Prefer type/title fallback — empty Shopify collections make collection:handle useless
+    const query = collectionHandle
+      ? `(${buildCollectionFallbackQuery(collectionHandle)})`
+      : undefined;
     const data = await shopifyFetch<{
       products: {
         edges: {
@@ -222,7 +225,8 @@ export async function getCollectionProducts(
         description: data.collection.description,
       },
     };
-  } catch {
+  } catch (err) {
+    console.error(`getCollectionProducts("${handle}") failed:`, err);
     return {
       products: [],
       pageInfo: { hasNextPage: false, endCursor: null },

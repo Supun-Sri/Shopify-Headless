@@ -14,9 +14,15 @@ type MegaMenuKey = 'collections' | 'brands' | 'about' | null;
 interface Props {
   collections: ShopifyCollection[];
   vendors?: string[];
+  /** When true, collection items link to ?type= (product types) instead of ?collection= */
+  useTypeLinks?: boolean;
 }
 
-export default function HeaderClient({ collections, vendors = [] }: Props) {
+export default function HeaderClient({ collections, vendors = [], useTypeLinks = false }: Props) {
+  const collectionHref = (handle: string) =>
+    useTypeLinks
+      ? `/products?type=${encodeURIComponent(handle)}`
+      : `/products?collection=${encodeURIComponent(handle)}`;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -344,7 +350,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
                     {col1.map((col) => (
                       <Link
                         key={col.id}
-                        href={`/products?collection=${col.handle}`}
+                        href={collectionHref(col.handle)}
                         role="menuitem"
                         onClick={() => setOpenMenu(null)}
                       >
@@ -358,7 +364,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
                     {col2.map((col) => (
                       <Link
                         key={col.id}
-                        href={`/products?collection=${col.handle}`}
+                        href={collectionHref(col.handle)}
                         role="menuitem"
                         onClick={() => setOpenMenu(null)}
                       >
@@ -463,7 +469,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           {collections.slice(0, 8).map((col) => (
             <Link
               key={col.id}
-              href={`/products?collection=${col.handle}`}
+              href={collectionHref(col.handle)}
               className="mobile-nav-link"
               onClick={() => setMobileMenuOpen(false)}
             >
