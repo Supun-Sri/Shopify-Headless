@@ -5,7 +5,7 @@ import { getCollections } from '@/lib/shopify-api';
 import type { ShopifyCollection } from '@/lib/types';
 
 export const metadata: Metadata = {
-  title: 'Collections',
+  title: 'Categories',
   description: 'Browse Imperial product categories. Construction chemicals, building materials, tools and more.',
 };
 
@@ -21,10 +21,10 @@ export default async function CollectionsPage() {
   return (
     <>
       <div className="breadcrumb">
-        <a href="/">Home</a> / Collections
+        <a href="/">Home</a> / Categories
       </div>
       <div className="section">
-        <h2>All Collections</h2>
+        <h2>All Categories</h2>
 
         {collections.length > 0 ? (
           <div className="catgrid">

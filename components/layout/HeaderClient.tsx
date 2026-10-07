@@ -327,7 +327,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
               aria-haspopup="true"
               onClick={() => setOpenMenu(openMenu === 'collections' ? null : 'collections')}
             >
-              Collections
+              Categories
               <svg
                 width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" aria-hidden="true"
@@ -368,8 +368,8 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
                   </div>
                 )}
                 <div className="megacol megacol-cta">
-                  <Link href="/collections" className="megacol-view-all" onClick={() => setOpenMenu(null)}>
-                    View all collections →
+                  <Link href="/categories" className="megacol-view-all" onClick={() => setOpenMenu(null)}>
+                    View all categories →
                   </Link>
                   <Link href="/bulk-inquiries" className="megacol-rfq" onClick={() => setOpenMenu(null)}>
                     Bulk Inquiries
@@ -459,7 +459,7 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
               {vendor}
             </Link>
           ))}
-          <div className="mobile-nav-section">Collections</div>
+          <div className="mobile-nav-section">Categories</div>
           {collections.slice(0, 8).map((col) => (
             <Link
               key={col.id}
@@ -471,8 +471,8 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
             </Link>
           ))}
           {collections.length > 8 && (
-            <Link href="/collections" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-              All Collections →
+            <Link href="/categories" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+              All Categories →
             </Link>
           )}
           <div className="mobile-nav-section">About Us</div>
