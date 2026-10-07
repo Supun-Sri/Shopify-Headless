@@ -148,41 +148,59 @@ async function ProductGrid({
 
         {/* Pagination — cursor-based, driven by URL */}
         {(prevUrl || nextUrl) && (
-          <div className="pagerow">
-            <div className="pager">
+          <div className="pagerow" style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '40px 0 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', width: '100%' }}>
+              
+              {/* Previous Button */}
               {prevUrl ? (
-                <Link href={prevUrl} className="pg nav" aria-label="Previous page">
-                  <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 18l-6-6 6-6" />
+                <Link href={prevUrl} aria-label="Previous page" style={{ padding: '8px 20px', borderRadius: '6px', display: 'inline-flex', gap: '8px', alignItems: 'center', background: '#5e96b8', color: '#fff', textDecoration: 'none', fontWeight: 500, fontSize: '15px', transition: 'background 0.2s', minWidth: '120px', justifyContent: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 8 8 12 12 16"></polyline>
+                    <line x1="16" y1="12" x2="8" y2="12"></line>
                   </svg>
-                  <span style={{ fontSize: '12px', marginLeft: '4px' }}>Prev</span>
+                  Previous
                 </Link>
               ) : (
-                <span className="pg nav" style={{ opacity: 0.3 }} aria-disabled="true">
-                  <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 18l-6-6 6-6" />
+                <span style={{ padding: '8px 20px', borderRadius: '6px', display: 'inline-flex', gap: '8px', alignItems: 'center', background: '#5e96b8', color: '#fff', textDecoration: 'none', fontWeight: 500, fontSize: '15px', opacity: 0.5, cursor: 'not-allowed', minWidth: '120px', justifyContent: 'center' }} aria-disabled="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 8 8 12 12 16"></polyline>
+                    <line x1="16" y1="12" x2="8" y2="12"></line>
                   </svg>
+                  Previous
                 </span>
               )}
 
-              <span className="pg active" style={{ cursor: 'default' }}>
-                Page {pageNum}
-              </span>
+              {/* Current Page Indicator */}
+              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--navy, #333)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Page
+                <span style={{ padding: '6px 16px', border: '1px solid #ccc', borderRadius: '4px', background: 'transparent' }}>
+                  {pageNum}
+                </span>
+              </div>
 
+              {/* Next Button */}
               {nextUrl ? (
-                <Link href={nextUrl} className="pg nav" aria-label="Next page">
-                  <span style={{ fontSize: '12px', marginRight: '4px' }}>Next</span>
-                  <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 18l6-6-6-6" />
+                <Link href={nextUrl} aria-label="Next page" style={{ padding: '8px 20px', borderRadius: '6px', display: 'inline-flex', gap: '8px', alignItems: 'center', background: '#5e96b8', color: '#fff', textDecoration: 'none', fontWeight: 500, fontSize: '15px', transition: 'background 0.2s', minWidth: '120px', justifyContent: 'center' }}>
+                  Next
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 16 16 12 12 8"></polyline>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
                   </svg>
                 </Link>
               ) : (
-                <span className="pg nav" style={{ opacity: 0.3 }} aria-disabled="true">
-                  <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 18l6-6-6-6" />
+                <span style={{ padding: '8px 20px', borderRadius: '6px', display: 'inline-flex', gap: '8px', alignItems: 'center', background: '#5e96b8', color: '#fff', textDecoration: 'none', fontWeight: 500, fontSize: '15px', opacity: 0.5, cursor: 'not-allowed', minWidth: '120px', justifyContent: 'center' }} aria-disabled="true">
+                  Next
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 16 16 12 12 8"></polyline>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
                   </svg>
                 </span>
               )}
+
             </div>
           </div>
         )}
