@@ -573,13 +573,16 @@ a.btn-primary {
   min-width: 240px;
   display: flex;
   background: #fff;
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: var(--r-soft);
   overflow: hidden;
   box-shadow: var(--sh-soft);
-  transition: box-shadow var(--motion);
+  transition: box-shadow var(--motion), border-color var(--motion);
 }
-.searchbar:focus-within, .header-search:focus-within { box-shadow: var(--sh-lift); }
+.searchbar:focus-within, .header-search:focus-within {
+  box-shadow: var(--sh-lift);
+  border-color: var(--imperial-blue);
+}
 .searchbar input, .header-search input {
   flex: 1; border: none; padding: 13px 16px; font-size: 13.5px; outline: none; background: transparent;
 }

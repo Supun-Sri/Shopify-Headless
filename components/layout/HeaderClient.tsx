@@ -180,8 +180,8 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           />
         </Link>
 
-        <div style={{ position: 'relative', flex: 1, maxWidth: '500px' }}>
-          <form className={`searchbar ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search" style={{ margin: 0, maxWidth: '100%' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '240px', margin: '0 24px' }}>
+          <form className={`searchbar ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search" style={{ margin: 0, width: '100%' }}>
             <input
               type="search"
               placeholder="Search products, brands, categories..."
