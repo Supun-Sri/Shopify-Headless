@@ -34,8 +34,8 @@ export default async function HomePage() {
       ),
     },
     {
-      title: 'Gypsum & Ceiling',
-      href: '/products?collection=gypsum-ceiling',
+      title: 'Paints & Equipments',
+      href: '/products?collection=paints-equipments',
       icon: (
         <svg className="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
           <polygon points="12 2 2 7 12 12 22 7 12 2" />
