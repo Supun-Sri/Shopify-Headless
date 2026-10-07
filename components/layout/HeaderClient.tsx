@@ -7,7 +7,8 @@ import { useCartStore } from '@/lib/cart-store';
 import { useWishlistStore } from '@/lib/wishlist-store';
 import { useVatStore } from '@/lib/vat-store';
 import { useRouter, usePathname } from 'next/navigation';
-import type { ShopifyCollection } from '@/lib/types';
+import type { ShopifyCollection, ShopifyProduct } from '@/lib/types';
+import { usePrice } from '@/lib/use-price';
 
 type MegaMenuKey = 'collections' | 'brands' | 'about' | null;
 
@@ -20,8 +21,14 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<ShopifyProduct[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
   const [openMenu, setOpenMenu] = useState<MegaMenuKey>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  
+  const { formatWithVat } = usePrice();
   const totalQuantity = useCartStore((s) => s.totalQuantity());
   const toggleCart = useCartStore((s) => s.toggleCart);
   const wishlistItems = useWishlistStore((s) => s.items);
@@ -36,23 +43,53 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Close menu on outside click
+  // Close menu and suggestions on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
         setOpenMenu(null);
         setMobileSearchOpen(false);
+        setShowSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Close menu on route change
+  // Fetch search suggestions with debounce
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSuggestions(data.products || []);
+          setShowSuggestions(true);
+        }
+      } catch (error) {
+        console.error('Search suggestion error', error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  // Close menu and suggestions on route change
   useEffect(() => {
     setOpenMenu(null);
     setMobileMenuOpen(false);
     setMobileSearchOpen(false);
+    setShowSuggestions(false);
+    setSearchQuery('');
   }, [pathname]);
 
   // Lock body scroll when mobile menu is open
@@ -143,22 +180,74 @@ export default function HeaderClient({ collections, vendors = [] }: Props) {
           />
         </Link>
 
-        <form className={`searchbar ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search">
-          <input
-            type="search"
-            placeholder="Search products, brands, categories..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search products"
-          />
-          <button type="submit" aria-label="Search">
-            <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7"/>
-              <path d="m16.5 16.5 4.5 4.5"/>
-            </svg>
-            Search
-          </button>
-        </form>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '500px' }}>
+          <form className={`searchbar ${mobileSearchOpen ? 'mobile-open' : ''}`} onSubmit={handleSearch} role="search" style={{ margin: 0, maxWidth: '100%' }}>
+            <input
+              type="search"
+              placeholder="Search products, brands, categories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (searchQuery.trim().length >= 2) setShowSuggestions(true);
+              }}
+              aria-label="Search products"
+            />
+            <button type="submit" aria-label="Search">
+              <svg className="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="m16.5 16.5 4.5 4.5"/>
+              </svg>
+              Search
+            </button>
+          </form>
+
+          {showSuggestions && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+              background: '#fff', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              zIndex: 100, border: '1px solid var(--line)', maxHeight: '400px', overflowY: 'auto'
+            }}>
+              {isSearching ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>Searching...</div>
+              ) : suggestions.length > 0 ? (
+                <div>
+                  {suggestions.map((prod) => (
+                    <Link
+                      key={prod.id}
+                      href={`/products/${prod.handle}`}
+                      onClick={() => setShowSuggestions(false)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+                        borderBottom: '1px solid var(--line)', textDecoration: 'none', color: 'var(--text)'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--slot)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      {prod.images?.[0] && (
+                        <div style={{ width: '40px', height: '40px', position: 'relative', flexShrink: 0, background: 'var(--slot)', borderRadius: '4px' }}>
+                          <Image src={prod.images[0].url} alt={prod.title} fill style={{ objectFit: 'contain', padding: '4px' }} sizes="40px" />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontSize: '13.5px', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{prod.title}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                          {formatWithVat(prod.variants?.[0]?.price ?? prod.priceRange.minVariantPrice)}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  <div style={{ padding: '8px' }}>
+                    <Link href={`/products?q=${encodeURIComponent(searchQuery)}`} onClick={() => setShowSuggestions(false)} style={{ display: 'block', textAlign: 'center', padding: '8px', background: 'var(--slot)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--imperial-blue)', textDecoration: 'none' }}>
+                      View all results &rarr;
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>No products found</div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="headericons">
           <button
