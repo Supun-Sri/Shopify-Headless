@@ -1,6 +1,6 @@
 /**
- * Product search helpers for the PLP (`/products?q=`).
- * Improves typo tolerance and match breadth without touching suggestion UI.
+ * Product search helpers for PLP results and search autocomplete.
+ * Typo-tolerant query planning shared by `/products?q=` and `/api/search/suggest`.
  */
 
 /** Common construction-catalog typos / alternate spellings → preferred term */
@@ -205,10 +205,7 @@ export interface SearchQueryPlan {
   loose: string;
 }
 
-/**
- * Plan search queries from a raw `q` param.
- * Does not touch suggestion/autocomplete UI.
- */
+/** Plan typo-tolerant Shopify search clauses from a raw query string. */
 export function planProductSearch(raw: string, extraDict: string[] = []): SearchQueryPlan | null {
   const corrected = correctSearchQuery(raw, extraDict);
   if (!corrected) return null;
